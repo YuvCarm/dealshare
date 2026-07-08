@@ -23,14 +23,22 @@ export default async function Home() {
               You&apos;re signed in as{' '}
               <strong className="text-black dark:text-zinc-50">{user.email}</strong>.
             </p>
-            <form action={signOut} className="mt-6">
-              <button
-                type="submit"
-                className="h-11 rounded-lg border border-black/[.12] px-5 font-medium text-black hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]"
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link
+                href="/deals"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
               >
-                Sign out
-              </button>
-            </form>
+                Go to your deals
+              </Link>
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="h-11 rounded-lg border border-black/[.12] px-5 font-medium text-black hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
           </>
         ) : (
           <>
