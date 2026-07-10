@@ -20,7 +20,10 @@ export default function LoginPage() {
       email,
       options: {
         // Where Supabase sends the user after they click the emailed link.
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // This value becomes {{ .RedirectTo }} in the email template, so the
+        // link returns to /auth/confirm on whichever origin started the sign-in
+        // — localhost in development, your Vercel domain in production.
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
       },
     })
 
