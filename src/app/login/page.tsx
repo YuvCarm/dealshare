@@ -25,8 +25,14 @@ export default function LoginPage() {
     })
 
     if (error) {
+      // Log the FULL error object to the console for debugging — error.message
+      // is sometimes terse or unhelpful (it can even be "{}"), whereas the full
+      // object shows the status, code, and name behind the failure.
+      console.log('Magic-link sign-in error:', error)
       setStatus('error')
-      setErrorMsg(error.message)
+      // Show the message as readable text, with a friendly fallback so an empty
+      // or blank message never renders as nothing (or a bare "{}") on screen.
+      setErrorMsg(error.message || 'Something went wrong sending your magic link. Please try again.')
     } else {
       setStatus('sent')
     }
