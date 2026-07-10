@@ -14,6 +14,15 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // On a hosting platform like Vercel, `origin` (derived from request.url)
+      // can be an internal address rather than your public domain. Prefer the
+      // public host from the `x-forwarded-host` header when deployed, so the
+      // post-login redirect lands on the real site — never on localhost.
+      const forwardedHost = request.headers.get('x-forwarded-host')
+      const isLocalDev = process.env.NODE_ENV === 'development'
+      if (!isLocalDev && forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
