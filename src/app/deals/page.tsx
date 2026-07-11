@@ -1,7 +1,6 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { signOut } from '@/app/auth/actions'
+import SiteHeader from '@/app/site-header'
 import AddDealForm from './add-deal-form'
 
 type Deal = {
@@ -46,19 +45,7 @@ export default async function DealsPage() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <header className="flex items-center justify-between border-b border-black/[.08] px-6 py-4 dark:border-white/[.145]">
-        <Link href="/" className="text-lg font-semibold text-black dark:text-zinc-50">
-          DealShare
-        </Link>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-zinc-500 dark:text-zinc-400">{user.email}</span>
-          <form action={signOut}>
-            <button className="rounded-lg border border-black/[.12] px-3 py-1.5 font-medium text-black hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]">
-              Sign out
-            </button>
-          </form>
-        </div>
-      </header>
+      <SiteHeader email={user.email} active="deals" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
         <section className="rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
