@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useActionState, useEffect, useState } from 'react'
-import { updateInboundDeal, deleteInboundDeal, type ActionState } from './actions'
+import { addToPipeline, updateInboundDeal, deleteInboundDeal, type ActionState } from './actions'
 import InboundFields from './inbound-fields'
 import { statusLabel, type CoInvestorOption, type InboundDeal } from './types'
 
@@ -73,9 +73,10 @@ export default function InboundCard({
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {mode === 'view' ? (
           <>
+            <AddToPipeline id={deal.id} />
             <button type="button" onClick={() => setMode('edit')} className={secondaryBtn}>
               Edit
             </button>
@@ -92,6 +93,34 @@ export default function InboundCard({
         )}
       </div>
     </li>
+  )
+}
+
+// Copies this inbound deal into your own deals table (company name + notes,
+// with a "Source: shared by …" line). On success the button becomes a
+// confirmation with a link, which also stops accidental double-adds.
+function AddToPipeline({ id }: { id: string }) {
+  const [state, action, pending] = useActionState(addToPipeline, initialState)
+
+  if (state.ok) {
+    return (
+      <span className="text-sm text-green-600 dark:text-green-400">
+        Added ✓{' '}
+        <Link href="/deals" className="underline hover:text-green-700 dark:hover:text-green-300">
+          view in Deals
+        </Link>
+      </span>
+    )
+  }
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="id" value={id} />
+      <button type="submit" disabled={pending} className={secondaryBtn}>
+        {pending ? 'Adding…' : 'Add to my pipeline'}
+      </button>
+      {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
+    </form>
   )
 }
 

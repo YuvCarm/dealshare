@@ -131,6 +131,66 @@ export async function updateInboundDeal(
   return { ok: true }
 }
 
+export async function addToPipeline(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: 'You must be signed in to add a deal.' }
+  }
+
+  const id = text(formData.get('id'))
+  if (!id) {
+    return { ok: false, error: 'Missing inbound deal id.' }
+  }
+
+  // Load the inbound deal (RLS guarantees it's yours) together with the
+  // sharer's name, so the copy can say where it came from.
+  const { data: inbound, error: loadError } = await supabase
+    .from('inbound_deals')
+    .select('company_name, notes, co_investors ( name, fund_name )')
+    .eq('id', id)
+    .maybeSingle<{
+      company_name: string
+      notes: string | null
+      co_investors: { name: string; fund_name: string | null } | null
+    }>()
+  if (loadError) {
+    return { ok: false, error: loadError.message }
+  }
+  if (!inbound) {
+    return { ok: false, error: 'That inbound deal could not be found.' }
+  }
+
+  // "Source: shared by Dana (Acme Ventures)" — so the deal never forgets
+  // where it came from, even if the inbound row is deleted later.
+  const source = inbound.co_investors
+    ? `Source: shared by ${inbound.co_investors.name}${
+        inbound.co_investors.fund_name ? ` (${inbound.co_investors.fund_name})` : ''
+      }`
+    : 'Source: shared by a co-investor (since removed)'
+  const notes = inbound.notes ? `${inbound.notes}\n\n${source}` : source
+
+  // founder_consent stays false on purpose: the deal arrived second-hand, so
+  // you haven't asked the founder yet — the packet form will nudge you.
+  const { error } = await supabase.from('deals').insert({
+    user_id: user.id,
+    company_name: inbound.company_name,
+    notes,
+  })
+  if (error) {
+    return { ok: false, error: error.message }
+  }
+
+  revalidatePath('/deals')
+  return { ok: true }
+}
+
 export async function deleteInboundDeal(
   _prevState: ActionState,
   formData: FormData
