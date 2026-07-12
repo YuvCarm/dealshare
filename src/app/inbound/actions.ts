@@ -20,11 +20,24 @@ const VALID_STATUSES = new Set<string>(INBOUND_STATUSES.map((s) => s.value))
 // Read and check the editable fields out of the submitted form. Shared by
 // create and update so they can never drift apart. Returns either the fields
 // ready for the database, or the error to show.
+//
+// requireCoInvestor: creating always needs a sharer, but editing a deal whose
+// sharer was deleted (co_investor_id already null) must be allowed to keep it
+// that way — otherwise the deal could never be edited again without falsely
+// attributing it to someone else.
 async function validatedFields(
   supabase: SupabaseClient,
-  formData: FormData
+  formData: FormData,
+  { requireCoInvestor }: { requireCoInvestor: boolean }
 ): Promise<
-  | { fields: { company_name: string; co_investor_id: string; status: string; notes: string | null } }
+  | {
+      fields: {
+        company_name: string
+        co_investor_id: string | null
+        status: string
+        notes: string | null
+      }
+    }
   | { error: string }
 > {
   const companyName = text(formData.get('company_name'))
@@ -33,23 +46,25 @@ async function validatedFields(
   }
 
   const coInvestorId = text(formData.get('co_investor_id'))
-  if (!coInvestorId) {
+  if (!coInvestorId && requireCoInvestor) {
     return { error: 'Pick which co-investor shared it.' }
   }
 
-  // Confirm the co-investor really belongs to this user. RLS hides other
-  // people's co-investors, so if nothing comes back it isn't theirs — this
-  // stops a forged request from pointing at someone else's contact.
-  const { data: coInvestor, error: coInvestorError } = await supabase
-    .from('co_investors')
-    .select('id')
-    .eq('id', coInvestorId)
-    .maybeSingle()
-  if (coInvestorError) {
-    return { error: coInvestorError.message }
-  }
-  if (!coInvestor) {
-    return { error: 'That co-investor could not be found.' }
+  if (coInvestorId) {
+    // Confirm the co-investor really belongs to this user. RLS hides other
+    // people's co-investors, so if nothing comes back it isn't theirs — this
+    // stops a forged request from pointing at someone else's contact.
+    const { data: coInvestor, error: coInvestorError } = await supabase
+      .from('co_investors')
+      .select('id')
+      .eq('id', coInvestorId)
+      .maybeSingle()
+    if (coInvestorError) {
+      return { error: coInvestorError.message }
+    }
+    if (!coInvestor) {
+      return { error: 'That co-investor could not be found.' }
+    }
   }
 
   const status = text(formData.get('status')) ?? 'interested'
@@ -82,7 +97,7 @@ export async function createInboundDeal(
     return { ok: false, error: 'You must be signed in to log an inbound deal.' }
   }
 
-  const result = await validatedFields(supabase, formData)
+  const result = await validatedFields(supabase, formData, { requireCoInvestor: true })
   if ('error' in result) {
     return { ok: false, error: result.error }
   }
@@ -116,7 +131,7 @@ export async function updateInboundDeal(
     return { ok: false, error: 'Missing inbound deal id.' }
   }
 
-  const result = await validatedFields(supabase, formData)
+  const result = await validatedFields(supabase, formData, { requireCoInvestor: false })
   if ('error' in result) {
     return { ok: false, error: result.error }
   }

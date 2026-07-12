@@ -14,12 +14,16 @@ const secondaryBtn =
 const primaryBtn =
   'h-9 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]'
 
-// A fixed locale so dates render the same on server and client.
+// A fixed locale AND timezone: this component renders on the server first and
+// again in the browser, and without pinning the timezone the two can disagree
+// on the calendar day (a React "hydration mismatch"). UTC also matches what
+// the server-rendered pages (like the co-investor profile) display.
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   })
 }
 
@@ -32,6 +36,11 @@ export default function InboundCard({
 }) {
   // Which face of the card is showing right now.
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm'>('view')
+
+  // "Already added to my deals" lives up here (not inside AddToPipeline) so it
+  // survives switching to Edit or Delete and back — otherwise the button would
+  // reappear and allow adding the same deal twice.
+  const [added, setAdded] = useState(false)
 
   if (mode === 'edit') {
     return <EditCard deal={deal} coInvestors={coInvestors} onClose={() => setMode('view')} />
@@ -76,7 +85,7 @@ export default function InboundCard({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {mode === 'view' ? (
           <>
-            <AddToPipeline id={deal.id} />
+            <AddToPipeline id={deal.id} added={added} onAdded={() => setAdded(true)} />
             <button type="button" onClick={() => setMode('edit')} className={secondaryBtn}>
               Edit
             </button>
@@ -98,11 +107,24 @@ export default function InboundCard({
 
 // Copies this inbound deal into your own deals table (company name + notes,
 // with a "Source: shared by …" line). On success the button becomes a
-// confirmation with a link, which also stops accidental double-adds.
-function AddToPipeline({ id }: { id: string }) {
+// confirmation with a link, which also stops accidental double-adds — the
+// `added` flag is owned by the card so it survives Edit/Delete toggles.
+function AddToPipeline({
+  id,
+  added,
+  onAdded,
+}: {
+  id: string
+  added: boolean
+  onAdded: () => void
+}) {
   const [state, action, pending] = useActionState(addToPipeline, initialState)
 
-  if (state.ok) {
+  useEffect(() => {
+    if (state.ok) onAdded()
+  }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (added) {
     return (
       <span className="text-sm text-green-600 dark:text-green-400">
         Added ✓{' '}

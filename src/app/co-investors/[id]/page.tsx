@@ -27,17 +27,24 @@ type InboundFromInvestor = {
   notes: string | null
 }
 
+// Locale AND timezone pinned, so every page shows the same date for a row no
+// matter where the server or visitor is.
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   })
 }
 
 // "Jul 2026" — for the reciprocity line.
 function monthYear(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
 }
 
 // Format a dollar amount compactly: 250000 -> $250K, 1500000 -> $1.5M.

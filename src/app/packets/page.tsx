@@ -19,12 +19,14 @@ type PacketRow = {
   packet_deals: { id: string }[]
 }
 
-// A fixed locale so the server always renders dates the same way.
+// Locale AND timezone pinned, so every page shows the same date for a row no
+// matter where the server or visitor is.
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   })
 }
 

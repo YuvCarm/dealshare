@@ -11,7 +11,9 @@
 --     recipient can't tell the difference, and nothing leaks.
 --
 -- This REPLACES the function from migration 0004; the only change to it is
--- the `and sp.revoked_at is null` condition near the bottom.
+-- the `and sp.revoked_at is null` condition near the bottom. If you ever
+-- re-run 0004 for any reason, re-run THIS file afterwards — otherwise the
+-- revocation check silently disappears and revoked links work again.
 
 alter table share_packets add column if not exists revoked_at timestamptz;
 

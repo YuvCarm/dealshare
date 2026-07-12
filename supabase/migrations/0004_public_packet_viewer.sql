@@ -1,7 +1,12 @@
 -- DealShare — public packet viewer (share packets step)
 --
+-- ⚠ SUPERSEDED by 0005: migration 0005 replaces the function below with a
+-- version that also skips revoked packets. Never run this file AFTER 0005 —
+-- doing so would silently make revoked links work again. If you ever do,
+-- simply re-run 0005 afterwards to restore the right version.
+--
 -- Run this ONCE in your Supabase project: Dashboard → SQL Editor → New query →
--- paste → Run. Safe to re-run (create OR REPLACE).
+-- paste → Run. Safe to re-run (create OR REPLACE — but see the warning above).
 --
 -- Why: the /p/<token> page must work for people who are NOT logged in. Our
 -- Row-Level Security rules (rightly) hide everything from anonymous visitors,

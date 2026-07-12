@@ -34,6 +34,12 @@ export default function InboundFields({
   coInvestors: CoInvestorOption[]
   values?: InboundDeal
 }) {
+  // If the sharer was deleted, the deal's co_investor_id is null. Editing it
+  // must not force a false re-attribution to someone else, so in that one
+  // case we offer a selectable "(removed co-investor)" choice that keeps the
+  // deal unattributed — and only then is the field not required.
+  const sharerRemoved = values !== undefined && values.co_investor_id === null
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <Field label="Company name *" className="sm:col-span-2">
@@ -46,16 +52,20 @@ export default function InboundFields({
         />
       </Field>
 
-      <Field label="Shared by *">
+      <Field label={sharerRemoved ? 'Shared by' : 'Shared by *'}>
         <select
           name="co_investor_id"
-          required
+          required={!sharerRemoved}
           defaultValue={values?.co_investor_id ?? ''}
           className={inputCls}
         >
-          <option value="" disabled>
-            Choose a co-investor…
-          </option>
+          {sharerRemoved ? (
+            <option value="">(removed co-investor)</option>
+          ) : (
+            <option value="" disabled>
+              Choose a co-investor…
+            </option>
+          )}
           {coInvestors.map((investor) => (
             <option key={investor.id} value={investor.id}>
               {investor.name}
