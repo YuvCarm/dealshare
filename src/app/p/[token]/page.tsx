@@ -80,7 +80,8 @@ export default async function PacketViewerPage({
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           {packet.deals.length} {packet.deals.length === 1 ? 'deal' : 'deals'} · shared{' '}
-          {formatDate(packet.created_at)} · this link is private — please don&apos;t forward it.
+          {formatDate(packet.created_at)}
+          {' · '}this link is private — please don&apos;t forward it.
         </p>
 
         <ul className="mt-6 flex flex-col gap-3">
