@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { signOut } from '@/app/auth/actions'
 
-// The shared top bar. Both /deals and /co-investors render this so the
+// The shared top bar. /deals, /co-investors, and /packets render this so the
 // navigation and sign-out button look and behave identically on each page.
 // `active` decides which nav link is highlighted.
 export default function SiteHeader({
@@ -9,7 +9,7 @@ export default function SiteHeader({
   active,
 }: {
   email?: string
-  active: 'deals' | 'co-investors'
+  active: 'deals' | 'co-investors' | 'packets'
 }) {
   return (
     <header className="flex items-center justify-between border-b border-black/[.08] px-6 py-4 dark:border-white/[.145]">
@@ -23,6 +23,9 @@ export default function SiteHeader({
           </NavLink>
           <NavLink href="/co-investors" active={active === 'co-investors'}>
             Co-investors
+          </NavLink>
+          <NavLink href="/packets" active={active === 'packets'}>
+            Packets
           </NavLink>
         </nav>
       </div>
