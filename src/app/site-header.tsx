@@ -9,7 +9,7 @@ export default function SiteHeader({
   active,
 }: {
   email?: string
-  active: 'deals' | 'co-investors' | 'packets'
+  active: 'deals' | 'co-investors' | 'packets' | 'inbound'
 }) {
   return (
     <header className="flex items-center justify-between border-b border-black/[.08] px-6 py-4 dark:border-white/[.145]">
@@ -26,6 +26,9 @@ export default function SiteHeader({
           </NavLink>
           <NavLink href="/packets" active={active === 'packets'}>
             Packets
+          </NavLink>
+          <NavLink href="/inbound" active={active === 'inbound'}>
+            Inbound
           </NavLink>
         </nav>
       </div>

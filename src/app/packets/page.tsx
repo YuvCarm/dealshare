@@ -3,23 +3,30 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
 import CopyLinkButton from './copy-link-button'
+import RevokeButton from './revoke-button'
+import StatusChip from './status-chip'
 
 // One row from share_packets, with the co-investor's name pulled in through
 // the foreign key and the linked packet_deals rows (just their ids, to count).
+// revoked_at is optional because it only exists once migration 0005 has run;
+// selecting * below means the page works either way (missing column = active).
 type PacketRow = {
   id: string
   created_at: string
   link_token: string
-  co_investors: { name: string; fund_name: string | null } | null
+  revoked_at?: string | null
+  co_investors: { id: string; name: string; fund_name: string | null } | null
   packet_deals: { id: string }[]
 }
 
-// A fixed locale so the server always renders dates the same way.
+// Locale AND timezone pinned, so every page shows the same date for a row no
+// matter where the server or visitor is.
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   })
 }
 
@@ -34,7 +41,7 @@ export default async function PacketsPage() {
   // Thanks to RLS, this returns ONLY this user's packets — no filtering here.
   const { data: packets, error } = await supabase
     .from('share_packets')
-    .select('id, created_at, link_token, co_investors ( name, fund_name ), packet_deals ( id )')
+    .select('*, co_investors ( id, name, fund_name ), packet_deals ( id )')
     .order('created_at', { ascending: false })
     .returns<PacketRow[]>()
 
@@ -82,21 +89,32 @@ export default async function PacketsPage() {
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h2 className="text-base font-semibold text-black dark:text-zinc-50">
-                    {packet.co_investors?.name ?? 'Co-investor removed'}
+                    {packet.co_investors ? (
+                      <Link
+                        href={`/co-investors/${packet.co_investors.id}`}
+                        className="hover:underline"
+                      >
+                        {packet.co_investors.name}
+                      </Link>
+                    ) : (
+                      'Co-investor removed'
+                    )}
                     {packet.co_investors?.fund_name && (
                       <span className="ml-2 font-normal text-zinc-500 dark:text-zinc-400">
                         {packet.co_investors.fund_name}
                       </span>
                     )}
                   </h2>
-                  <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                  <span className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    <StatusChip revoked={!!packet.revoked_at} />
                     {formatDate(packet.created_at)} · {dealCount}{' '}
                     {dealCount === 1 ? 'deal' : 'deals'}
                   </span>
                 </div>
 
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <CopyLinkButton path={`/p/${packet.link_token}`} />
+                  <RevokeButton packetId={packet.id} revoked={!!packet.revoked_at} />
                 </div>
               </li>
             )
