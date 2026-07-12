@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useEffect, useState } from 'react'
 import { updateInboundDeal, deleteInboundDeal, type ActionState } from './actions'
 import InboundFields from './inbound-fields'
@@ -47,7 +48,12 @@ export default function InboundCard({
             Shared by{' '}
             {deal.co_investors ? (
               <>
-                {deal.co_investors.name}
+                <Link
+                  href={`/co-investors/${deal.co_investors.id}`}
+                  className="text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {deal.co_investors.name}
+                </Link>
                 {deal.co_investors.fund_name && ` (${deal.co_investors.fund_name})`}
               </>
             ) : (
