@@ -21,7 +21,9 @@ New query → paste → Run), the same way the migrations are applied:
 
 ## Notes
 
-- The seed looks up your account by the email at the top of the file
-  (`v_email`) — edit that line if you log in with a different address.
+- The seed auto-detects your account when the project has a single user (the
+  usual case). If there are several users, it stops with a message asking you
+  to set `v_email` at the top of your pasted copy — your email never needs to
+  be committed to the repo.
 - Migration `0005_packet_revocation.sql` is optional for the seed: without it
   you just don't get the one revoked example packet (a notice will say so).

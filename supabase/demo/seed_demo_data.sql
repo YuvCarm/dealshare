@@ -31,11 +31,14 @@
 
 do $$
 declare
-  -- ⚠ The one line you might edit: the email you log in to DealShare with.
-  --   The demo rows are created under this account.
-  v_email constant text := 'yc.carmeli@gmail.com';
+  -- Normally nothing to edit: when the project has a single account (the
+  -- usual case) the demo rows are created under it automatically. Only if
+  -- your project has SEVERAL users, put your login email between the quotes.
+  v_email constant text := '';
 
   v_user uuid;
+  v_user_count integer;
+  v_user_emails text;
   v_has_revoked_at boolean;
 
   -- ---- fixed demo ids (the 'dea1dea1-' prefix is what makes wipe safe) ----
@@ -83,9 +86,21 @@ begin
     raise exception 'DealShare tables not found — run migrations 0001 and 0002 first.';
   end if;
 
-  select id into v_user from auth.users where lower(email) = lower(v_email);
-  if v_user is null then
-    raise exception 'No user with email % — edit v_email at the top of this file to the email you log in with.', v_email;
+  if v_email <> '' then
+    select id into v_user from auth.users where lower(email) = lower(v_email);
+    if v_user is null then
+      raise exception 'No user with email % — check v_email at the top of this file.', v_email;
+    end if;
+  else
+    select count(*) into v_user_count from auth.users;
+    if v_user_count = 0 then
+      raise exception 'No users found — sign up in the app once, then run this again.';
+    elsif v_user_count > 1 then
+      select string_agg(email, ', ' order by email) into v_user_emails from auth.users;
+      raise exception 'This project has % users, so the demo owner can''t be guessed. Set v_email at the top of this file to your login email (users: %).',
+        v_user_count, v_user_emails;
+    end if;
+    select id into v_user from auth.users;
   end if;
 
   -- ------------------------------------------------------------------
