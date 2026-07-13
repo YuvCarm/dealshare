@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
+import { areaCls, btnSecondary, fieldLabel } from '@/app/ui'
 import { extractDealFields, type ExtractedDealFields, type ExtractState } from './extract'
 
 const initialState: ExtractState = { ok: false }
@@ -29,10 +30,10 @@ export default function ExtractBox({
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-3 rounded-xl border border-black/[.12] bg-zinc-100 p-4 dark:border-white/[.2] dark:bg-zinc-900"
+      className="flex flex-col gap-3 rounded-xl border border-indigo-600/15 bg-indigo-500/[.04] p-4 dark:border-indigo-400/20 dark:bg-indigo-400/[.06]"
     >
       <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <span className={fieldLabel}>
           Paste deal notes, an email, or deck text — I&apos;ll fill in the fields for you.
         </span>
         <textarea
@@ -41,16 +42,12 @@ export default function ExtractBox({
           onChange={(e) => setText(e.target.value)}
           rows={5}
           placeholder="e.g. Fwd: Acme is raising a $3M seed at a $15M cap, led by Foo Ventures…"
-          className="rounded-lg border border-black/[.12] bg-white px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.2] dark:bg-black dark:text-white"
+          className={areaCls}
         />
       </label>
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-9 rounded-lg border border-black/[.12] bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-zinc-50 disabled:opacity-60 dark:border-white/[.2] dark:bg-black dark:text-white dark:hover:bg-zinc-900"
-        >
+        <button type="submit" disabled={pending} className={btnSecondary}>
           {pending ? 'Extracting…' : 'Extract'}
         </button>
         {pending && (
@@ -59,7 +56,7 @@ export default function ExtractBox({
           </p>
         )}
         {!pending && state.ok && (
-          <p className="text-sm text-green-600 dark:text-green-400">
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
             Filled {filledCount(state.fields)} of 10 fields — review below, then add the deal.
           </p>
         )}

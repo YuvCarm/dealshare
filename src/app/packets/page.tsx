@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import EmptyState from '@/app/empty-state'
+import { btnPrimaryLg, countCls, errorBox, itemCard } from '@/app/ui'
 import CopyLinkButton from './copy-link-button'
 import RevokeButton from './revoke-button'
 import StatusChip from './status-chip'
@@ -46,49 +48,45 @@ export default async function PacketsPage() {
     .returns<PacketRow[]>()
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <SiteHeader email={user.email} active="packets" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
-              Share packets{packets ? ` (${packets.length})` : ''}
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+              Share packets
+              {packets && <span className={countCls}>({packets.length})</span>}
             </h1>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               Each packet is a private link you send to one co-investor.
             </p>
           </div>
-          <Link
-            href="/packets/new"
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-          >
+          <Link href="/packets/new" className={btnPrimaryLg}>
             New share packet
           </Link>
         </div>
 
         {error && (
-          <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            Couldn&apos;t load packets: {error.message}
-          </p>
+          <p className={`mt-4 ${errorBox}`}>Couldn&apos;t load packets: {error.message}</p>
         )}
 
         {packets && packets.length === 0 && (
-          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            No packets yet — create your first one to share deals with a co-investor.
-          </p>
+          <EmptyState
+            heading="No share packets yet"
+            body="A packet is a private link that shows one co-investor only the deals — and the details — you choose."
+            href="/packets/new"
+            cta="Create your first packet"
+          />
         )}
 
         <ul className="mt-4 flex flex-col gap-3">
           {packets?.map((packet) => {
             const dealCount = packet.packet_deals.length
             return (
-              <li
-                key={packet.id}
-                className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950"
-              >
+              <li key={packet.id} className={itemCard}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="text-base font-semibold text-black dark:text-zinc-50">
+                  <h2 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
                     {packet.co_investors ? (
                       <Link
                         href={`/co-investors/${packet.co_investors.id}`}
@@ -112,7 +110,7 @@ export default async function PacketsPage() {
                   </span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="mt-3 flex items-center justify-between gap-2">
                   <CopyLinkButton path={`/p/${packet.link_token}`} />
                   <RevokeButton packetId={packet.id} revoked={!!packet.revoked_at} />
                 </div>

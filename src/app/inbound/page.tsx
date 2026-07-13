@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import EmptyState from '@/app/empty-state'
+import { countCls, errorBox, inlineLink, sectionCard } from '@/app/ui'
 import AddInboundForm from './add-inbound-form'
 import InboundCard from './inbound-card'
 import type { CoInvestorOption, InboundDeal } from './types'
@@ -30,14 +32,15 @@ export default async function InboundPage() {
     .returns<InboundDeal[]>()
 
   const loadError = coInvestorsError || dealsError
+  const hasCoInvestors = (coInvestors?.length ?? 0) > 0
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <SiteHeader email={user.email} active="inbound" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <section className="rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
-          <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <section id="log-inbound" className={`scroll-mt-24 ${sectionCard}`}>
+          <h1 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Log an inbound deal
           </h1>
           <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
@@ -45,15 +48,12 @@ export default async function InboundPage() {
             relationship.
           </p>
 
-          {(coInvestors?.length ?? 0) > 0 ? (
+          {hasCoInvestors ? (
             <AddInboundForm coInvestors={coInvestors ?? []} />
           ) : (
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               You need at least one co-investor to log who shared the deal.{' '}
-              <Link
-                href="/co-investors"
-                className="text-blue-600 hover:underline dark:text-blue-400"
-              >
+              <Link href="/co-investors" className={inlineLink}>
                 Add a co-investor first →
               </Link>
             </p>
@@ -61,20 +61,24 @@ export default async function InboundPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
-            Inbound deals{deals ? ` (${deals.length})` : ''}
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Inbound deals
+            {deals && <span className={countCls}>({deals.length})</span>}
           </h2>
 
           {loadError && (
-            <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            <p className={`mt-4 ${errorBox}`}>
               Couldn&apos;t load inbound deals: {loadError.message}
             </p>
           )}
 
           {deals && deals.length === 0 && (
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-              Nothing logged yet — when a fund sends a deal your way, note it here.
-            </p>
+            <EmptyState
+              heading="No inbound deals yet"
+              body="When a co-investor shares a deal with you, log it here so both sides of the relationship stay visible."
+              href={hasCoInvestors ? '#log-inbound' : '/co-investors'}
+              cta={hasCoInvestors ? 'Log your first inbound deal' : 'Add a co-investor first'}
+            />
           )}
 
           <ul className="mt-4 flex flex-col gap-3">

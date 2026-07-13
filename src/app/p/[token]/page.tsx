@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import Badge from '@/app/badge'
+import { inlineLink, itemCard, moneyCls } from '@/app/ui'
 import { SHAREABLE_FIELDS, type ShareableFieldKey } from '@/app/packets/fields'
 
 // This page is PUBLIC — anyone with the link can open it, logged in or not.
@@ -64,25 +66,30 @@ export default async function PacketViewerPage({
   if (!packet) notFound()
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
-      <header className="border-b border-black/[.08] px-6 py-4 dark:border-white/[.145]">
-        <span className="text-lg font-semibold text-black dark:text-zinc-50">DealShare</span>
+    <div className="flex min-h-full flex-1 flex-col bg-background">
+      <header className="flex items-center justify-between border-b border-zinc-950/[.06] px-6 py-4 dark:border-white/[.08]">
+        <span className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+          <span aria-hidden className="h-2 w-2 rounded-full bg-accent" />
+          DealShare
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-950/[.03] px-2.5 py-1 text-[11px] font-medium text-zinc-500 ring-1 ring-inset ring-zinc-950/[.08] dark:bg-white/[.05] dark:text-zinc-400 dark:ring-white/[.1]">
+          Private link — please don&apos;t forward
+        </span>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
-          Deals shared with{' '}
-          {packet.co_investor ? packet.co_investor.name : 'you'}
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+          Deals shared with {packet.co_investor ? packet.co_investor.name : 'you'}
           {packet.co_investor?.fund_name && (
-            <span className="ml-2 font-normal text-zinc-500 dark:text-zinc-400">
+            <span className="ml-2 text-base font-normal text-zinc-500 dark:text-zinc-400">
               {packet.co_investor.fund_name}
             </span>
           )}
         </h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {packet.deals.length} {packet.deals.length === 1 ? 'deal' : 'deals'} · shared{' '}
+          <span className="font-mono tabular-nums">{packet.deals.length}</span>{' '}
+          {packet.deals.length === 1 ? 'deal' : 'deals'} · shared{' '}
           {formatDate(packet.created_at)}
-          {' · '}this link is private — please don&apos;t forward it.
         </p>
 
         <ul className="mt-6 flex flex-col gap-3">
@@ -94,7 +101,7 @@ export default async function PacketViewerPage({
 
       <footer className="px-6 py-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
         Shared privately via{' '}
-        <Link href="/" className="underline hover:text-zinc-600 dark:hover:text-zinc-400">
+        <Link href="/" className="underline underline-offset-4 hover:text-accent">
           DealShare
         </Link>
       </footer>
@@ -109,15 +116,21 @@ function DealCard({ deal }: { deal: SharedDeal }) {
     typeof deal[key] === 'number' ? usd(deal[key]) : null
 
   return (
-    <li className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950">
+    <li className={itemCard}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold text-black dark:text-zinc-50">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
           {typeof deal.company_name === 'string' ? deal.company_name : 'Undisclosed company'}
         </h2>
         <div className="flex flex-wrap gap-1.5">
           {deal.company_stage && <Badge>{String(deal.company_stage)}</Badge>}
-          {deal.round_status && <Badge>{String(deal.round_status)}</Badge>}
-          {deal.your_fund_status && <Badge>our status: {String(deal.your_fund_status)}</Badge>}
+          {deal.round_status && (
+            <Badge value={String(deal.round_status)}>{String(deal.round_status)}</Badge>
+          )}
+          {deal.your_fund_status && (
+            <Badge value={String(deal.your_fund_status)}>
+              our status: {String(deal.your_fund_status)}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -130,9 +143,21 @@ function DealCard({ deal }: { deal: SharedDeal }) {
         {deal.geography && <span>Geo: {String(deal.geography)}</span>}
         {deal.round_type && <span>Type: {String(deal.round_type).replace(/_/g, ' ')}</span>}
         {deal.lead_investor && <span>Lead: {String(deal.lead_investor)}</span>}
-        {money('round_size') && <span>Round: {money('round_size')}</span>}
-        {money('valuation_or_cap') && <span>Val/cap: {money('valuation_or_cap')}</span>}
-        {money('committed_so_far') && <span>Committed: {money('committed_so_far')}</span>}
+        {money('round_size') && (
+          <span>
+            Round: <span className={moneyCls}>{money('round_size')}</span>
+          </span>
+        )}
+        {money('valuation_or_cap') && (
+          <span>
+            Val/cap: <span className={moneyCls}>{money('valuation_or_cap')}</span>
+          </span>
+        )}
+        {money('committed_so_far') && (
+          <span>
+            Committed: <span className={moneyCls}>{money('committed_so_far')}</span>
+          </span>
+        )}
       </div>
 
       {(deal.website || deal.deck_url) && (
@@ -142,7 +167,7 @@ function DealCard({ deal }: { deal: SharedDeal }) {
               href={String(deal.website)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline dark:text-blue-400"
+              className={inlineLink}
             >
               Website ↗
             </a>
@@ -152,7 +177,7 @@ function DealCard({ deal }: { deal: SharedDeal }) {
               href={String(deal.deck_url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline dark:text-blue-400"
+              className={inlineLink}
             >
               Deck ↗
             </a>
@@ -173,13 +198,5 @@ function DealCard({ deal }: { deal: SharedDeal }) {
         </p>
       )}
     </li>
-  )
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-      {children}
-    </span>
   )
 }

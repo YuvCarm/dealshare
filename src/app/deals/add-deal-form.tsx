@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useCallback, useEffect, useRef } from 'react'
+import { btnPrimary, checkboxCls, fieldLabel, inputCls, areaCls } from '@/app/ui'
 import { createDeal, type DealFormState } from './actions'
 import ExtractBox from './extract-box'
 import type { ExtractedDealFields } from './extract'
@@ -10,11 +11,6 @@ const STAGES = ['pre-seed', 'seed', 'A', 'B+']
 const ROUND_STATUSES = ['open', 'closed']
 const ROUND_TYPES = ['priced_equity', 'safe', 'convertible_note', 'bridge']
 const FUND_STATUSES = ['evaluating', 'investing', 'passed']
-
-const inputCls =
-  'h-10 rounded-lg border border-black/[.12] bg-white px-3 text-sm text-black outline-none focus:border-black dark:border-white/[.2] dark:bg-black dark:text-white'
-const areaCls =
-  'rounded-lg border border-black/[.12] bg-white px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.2] dark:bg-black dark:text-white'
 
 function Field({
   label,
@@ -27,7 +23,7 @@ function Field({
 }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
+      <span className={fieldLabel}>{label}</span>
       {children}
     </label>
   )
@@ -156,7 +152,7 @@ export default function AddDealForm() {
         </Field>
 
         <label className="flex items-center gap-2 sm:col-span-2">
-          <input name="founder_consent" type="checkbox" className="h-4 w-4" />
+          <input name="founder_consent" type="checkbox" className={checkboxCls} />
           <span className="text-sm text-zinc-700 dark:text-zinc-300">
             Founder has consented to sharing this deal
           </span>
@@ -164,15 +160,13 @@ export default function AddDealForm() {
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-11 rounded-lg bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
-        >
+        <button type="submit" disabled={pending} className={btnPrimary}>
           {pending ? 'Saving…' : 'Add deal'}
         </button>
         {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-        {state.ok && <p className="text-sm text-green-600 dark:text-green-400">Deal added ✓</p>}
+        {state.ok && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">Deal added ✓</p>
+        )}
       </div>
       </form>
     </div>
