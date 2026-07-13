@@ -10,7 +10,7 @@ const initialState: ActionState = { ok: false }
 
 // Shared button looks (same as the co-investor cards).
 const secondaryBtn =
-  'rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
+  'rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
 const primaryBtn =
   'h-9 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]'
 

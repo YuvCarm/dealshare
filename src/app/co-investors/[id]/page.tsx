@@ -150,7 +150,7 @@ export default async function CoInvestorProfilePage({
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
         <Link
           href="/co-investors"
-          className="text-sm text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
         >
           ← All co-investors
         </Link>

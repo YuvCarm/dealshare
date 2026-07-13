@@ -34,14 +34,14 @@ export default async function NewPacketPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
         <Link
           href="/packets"
-          className="text-sm text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
         >
           ← Back to packets
         </Link>
 
         <section className="mt-4 rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
           <h1 className="text-xl font-semibold text-black dark:text-zinc-50">New share packet</h1>
-          <p className="mt-1 mb-6 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
             Bundle a few deals for one co-investor. You control exactly which details of each
             deal they get to see.
           </p>

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import EmptyState from '@/app/empty-state'
 import CopyLinkButton from './copy-link-button'
 import RevokeButton from './revoke-button'
 import StatusChip from './status-chip'
@@ -74,9 +75,12 @@ export default async function PacketsPage() {
         )}
 
         {packets && packets.length === 0 && (
-          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            No packets yet — create your first one to share deals with a co-investor.
-          </p>
+          <EmptyState
+            heading="No share packets yet"
+            body="A packet is a private link that shows one co-investor only the deals — and the details — you choose."
+            href="/packets/new"
+            cta="Create your first packet"
+          />
         )}
 
         <ul className="mt-4 flex flex-col gap-3">
@@ -112,7 +116,7 @@ export default async function PacketsPage() {
                   </span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="mt-3 flex items-center justify-between gap-2">
                   <CopyLinkButton path={`/p/${packet.link_token}`} />
                   <RevokeButton packetId={packet.id} revoked={!!packet.revoked_at} />
                 </div>

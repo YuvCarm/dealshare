@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import EmptyState from '@/app/empty-state'
 import AddCoInvestorForm from './add-co-investor-form'
 import CoInvestorCard from './co-investor-card'
 import type { CoInvestor } from './types'
@@ -25,7 +26,10 @@ export default async function CoInvestorsPage() {
       <SiteHeader email={user.email} active="co-investors" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <section className="rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
+        <section
+          id="add-co-investor"
+          className="scroll-mt-6 rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950"
+        >
           <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Add a co-investor</h1>
           <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
             Only <strong>name</strong> is required. Enter thesis stages, sectors, and geographies as
@@ -40,15 +44,18 @@ export default async function CoInvestorsPage() {
           </h2>
 
           {error && (
-            <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
               Couldn&apos;t load co-investors: {error.message}
             </p>
           )}
 
           {investors && investors.length === 0 && (
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-              No co-investors yet — add your first one above.
-            </p>
+            <EmptyState
+              heading="No co-investors yet"
+              body="Add the people you swap deal flow with — their thesis, check size, and how warm the relationship is."
+              href="#add-co-investor"
+              cta="Add your first co-investor"
+            />
           )}
 
           <ul className="mt-4 flex flex-col gap-3">

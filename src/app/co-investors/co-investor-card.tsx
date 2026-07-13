@@ -11,7 +11,7 @@ const initialState: ActionState = { ok: false }
 
 // Shared button looks.
 const secondaryBtn =
-  'rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
+  'rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
 const primaryBtn =
   'h-9 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]'
 
@@ -128,7 +128,7 @@ function DeleteConfirm({ id, onCancel }: { id: string; onCancel: () => void }) {
       <button
         type="submit"
         disabled={pending}
-        className="h-9 rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+        className="h-9 rounded-lg bg-red-600 px-3 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
       >
         {pending ? 'Deleting…' : 'Yes, delete'}
       </button>

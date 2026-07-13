@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import EmptyState from '@/app/empty-state'
 import AddDealForm from './add-deal-form'
 
 type Deal = {
@@ -48,7 +49,10 @@ export default async function DealsPage() {
       <SiteHeader email={user.email} active="deals" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <section className="rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
+        <section
+          id="add-deal"
+          className="scroll-mt-6 rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950"
+        >
           <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Add a deal</h1>
           <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
             Only <strong>company name</strong> is required — fill in whatever you have.
@@ -62,15 +66,18 @@ export default async function DealsPage() {
           </h2>
 
           {error && (
-            <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
               Couldn&apos;t load deals: {error.message}
             </p>
           )}
 
           {deals && deals.length === 0 && (
-            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-              No deals yet — add your first one above.
-            </p>
+            <EmptyState
+              heading="No deals yet"
+              body="Track a company you're evaluating, then share it with co-investors when you're ready."
+              href="#add-deal"
+              cta="Add your first deal"
+            />
           )}
 
           <ul className="mt-4 flex flex-col gap-3">

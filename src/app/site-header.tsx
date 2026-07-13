@@ -38,7 +38,7 @@ export default function SiteHeader({
           <span className="hidden text-zinc-500 sm:inline dark:text-zinc-400">{email}</span>
         )}
         <form action={signOut}>
-          <button className="rounded-lg border border-black/[.12] px-3 py-1.5 font-medium text-black hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]">
+          <button className="rounded-lg border border-black/[.12] px-3 py-1.5 font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]">
             Sign out
           </button>
         </form>

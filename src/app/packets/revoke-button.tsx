@@ -26,8 +26,8 @@ export default function RevokeButton({
         disabled={pending}
         className={
           revoked
-            ? 'shrink-0 rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black hover:bg-black/[.04] disabled:opacity-60 dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
-            : 'shrink-0 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950'
+            ? 'shrink-0 rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-black/[.04] disabled:opacity-60 dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
+            : 'shrink-0 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950'
         }
       >
         {pending ? 'Working…' : revoked ? 'Restore link' : 'Revoke link'}
