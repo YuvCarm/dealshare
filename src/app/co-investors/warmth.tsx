@@ -52,7 +52,7 @@ export function WarmthInput({
                 className={`block h-4 w-4 rounded-full border transition-colors ${
                   filled
                     ? 'border-amber-500 bg-amber-500'
-                    : 'border-black/25 bg-transparent hover:border-amber-400 dark:border-white/30'
+                    : 'border-zinc-950/20 bg-transparent hover:border-amber-400 dark:border-white/25'
                 }`}
               />
             </button>
@@ -79,7 +79,7 @@ export function WarmthDots({ value }: { value: number | null }) {
         <span
           key={n}
           className={`h-2.5 w-2.5 rounded-full ${
-            n <= level ? 'bg-amber-500' : 'bg-black/10 dark:bg-white/15'
+            n <= level ? 'bg-amber-500' : 'bg-zinc-950/[.08] dark:bg-white/[.12]'
           }`}
         />
       ))}

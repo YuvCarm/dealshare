@@ -2,17 +2,20 @@
 
 import Link from 'next/link'
 import { useActionState, useEffect, useState } from 'react'
+import Badge from '@/app/badge'
+import {
+  btnDanger,
+  btnDangerSolid,
+  btnPrimarySm,
+  btnSecondarySm,
+  inlineLink,
+  itemCard,
+} from '@/app/ui'
 import { addToPipeline, updateInboundDeal, deleteInboundDeal, type ActionState } from './actions'
 import InboundFields from './inbound-fields'
 import { statusLabel, type CoInvestorOption, type InboundDeal } from './types'
 
 const initialState: ActionState = { ok: false }
-
-// Shared button looks (same as the co-investor cards).
-const secondaryBtn =
-  'rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
-const primaryBtn =
-  'h-9 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]'
 
 // A fixed locale AND timezone: this component renders on the server first and
 // again in the browser, and without pinning the timezone the two can disagree
@@ -47,20 +50,17 @@ export default function InboundCard({
   }
 
   return (
-    <li className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950">
+    <li className={itemCard}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-base font-semibold text-black dark:text-zinc-50">
+          <h3 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             {deal.company_name}
           </h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Shared by{' '}
             {deal.co_investors ? (
               <>
-                <Link
-                  href={`/co-investors/${deal.co_investors.id}`}
-                  className="text-blue-600 hover:underline dark:text-blue-400"
-                >
+                <Link href={`/co-investors/${deal.co_investors.id}`} className={inlineLink}>
                   {deal.co_investors.name}
                 </Link>
                 {deal.co_investors.fund_name && ` (${deal.co_investors.fund_name})`}
@@ -71,9 +71,7 @@ export default function InboundCard({
             · {formatDate(deal.created_at)}
           </p>
         </div>
-        <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-          {statusLabel(deal.status)}
-        </span>
+        <Badge value={deal.status}>{statusLabel(deal.status)}</Badge>
       </div>
 
       {deal.notes && (
@@ -86,14 +84,10 @@ export default function InboundCard({
         {mode === 'view' ? (
           <>
             <AddToPipeline id={deal.id} added={added} onAdded={() => setAdded(true)} />
-            <button type="button" onClick={() => setMode('edit')} className={secondaryBtn}>
+            <button type="button" onClick={() => setMode('edit')} className={btnSecondarySm}>
               Edit
             </button>
-            <button
-              type="button"
-              onClick={() => setMode('confirm')}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-            >
+            <button type="button" onClick={() => setMode('confirm')} className={btnDanger}>
               Delete
             </button>
           </>
@@ -126,9 +120,12 @@ function AddToPipeline({
 
   if (added) {
     return (
-      <span className="text-sm text-green-600 dark:text-green-400">
+      <span className="text-sm text-emerald-700 dark:text-emerald-400">
         Added ✓{' '}
-        <Link href="/deals" className="underline hover:text-green-700 dark:hover:text-green-300">
+        <Link
+          href="/deals"
+          className="underline underline-offset-4 hover:text-emerald-700 dark:hover:text-emerald-300"
+        >
           view in Deals
         </Link>
       </span>
@@ -138,7 +135,7 @@ function AddToPipeline({
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={id} />
-      <button type="submit" disabled={pending} className={secondaryBtn}>
+      <button type="submit" disabled={pending} className={btnSecondarySm}>
         {pending ? 'Adding…' : 'Add to my pipeline'}
       </button>
       {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
@@ -155,14 +152,10 @@ function DeleteConfirm({ id, onCancel }: { id: string; onCancel: () => void }) {
     <form action={action} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={id} />
       <span className="text-sm text-zinc-600 dark:text-zinc-400">Are you sure?</span>
-      <button
-        type="submit"
-        disabled={pending}
-        className="h-9 rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className={btnDangerSolid}>
         {pending ? 'Deleting…' : 'Yes, delete'}
       </button>
-      <button type="button" onClick={onCancel} className={secondaryBtn}>
+      <button type="button" onClick={onCancel} className={btnSecondarySm}>
         Cancel
       </button>
       {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
@@ -188,15 +181,15 @@ function EditCard({
   }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <li className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950">
+    <li className={itemCard}>
       <form action={action} className="flex flex-col gap-4">
         <input type="hidden" name="id" value={deal.id} />
         <InboundFields coInvestors={coInvestors} values={deal} />
         <div className="flex items-center gap-3">
-          <button type="submit" disabled={pending} className={primaryBtn}>
+          <button type="submit" disabled={pending} className={btnPrimarySm}>
             {pending ? 'Saving…' : 'Save changes'}
           </button>
-          <button type="button" onClick={onClose} className={secondaryBtn}>
+          <button type="button" onClick={onClose} className={btnSecondarySm}>
             Cancel
           </button>
           {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}

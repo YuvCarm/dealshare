@@ -1,14 +1,10 @@
 'use client'
 
+import { fieldLabel, inputCls, areaCls } from '@/app/ui'
 import { INBOUND_STATUSES, type CoInvestorOption, type InboundDeal } from './types'
 
 // The one set of form fields for an inbound deal, used by BOTH the add form
 // and the edit face of a card (pre-filled via `values`), so they never drift.
-
-const inputCls =
-  'h-10 rounded-lg border border-black/[.12] bg-white px-3 text-sm text-black outline-none focus:border-black dark:border-white/[.2] dark:bg-black dark:text-white'
-const areaCls =
-  'rounded-lg border border-black/[.12] bg-white px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.2] dark:bg-black dark:text-white'
 
 function Field({
   label,
@@ -21,7 +17,7 @@ function Field({
 }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
+      <span className={fieldLabel}>{label}</span>
       {children}
     </label>
   )

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import { errorBox, inlineLink, sectionCard } from '@/app/ui'
 import NewPacketForm, { type CoInvestorOption, type DealOption } from './new-packet-form'
 
 export default async function NewPacketPage() {
@@ -28,34 +29,34 @@ export default async function NewPacketPage() {
   const loadError = coInvestorsError || dealsError
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <SiteHeader email={user.email} active="packets" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <Link
           href="/packets"
-          className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="text-sm text-zinc-500 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
         >
           ← Back to packets
         </Link>
 
-        <section className="mt-4 rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
-          <h1 className="text-xl font-semibold text-black dark:text-zinc-50">New share packet</h1>
+        <section className={`mt-4 ${sectionCard}`}>
+          <h1 className="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            New share packet
+          </h1>
           <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
             Bundle a few deals for one co-investor. You control exactly which details of each
             deal they get to see.
           </p>
 
           {loadError && (
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-              Couldn&apos;t load your data: {loadError.message}
-            </p>
+            <p className={errorBox}>Couldn&apos;t load your data: {loadError.message}</p>
           )}
 
           {!loadError && (coInvestors?.length ?? 0) === 0 && (
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               You need at least one co-investor to share with.{' '}
-              <Link href="/co-investors" className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link href="/co-investors" className={inlineLink}>
                 Add a co-investor first →
               </Link>
             </p>
@@ -64,7 +65,7 @@ export default async function NewPacketPage() {
           {!loadError && (coInvestors?.length ?? 0) > 0 && (deals?.length ?? 0) === 0 && (
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               You don&apos;t have any deals to share yet.{' '}
-              <Link href="/deals" className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link href="/deals" className={inlineLink}>
                 Add a deal first →
               </Link>
             </p>

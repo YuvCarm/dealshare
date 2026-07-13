@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react'
 // which domain the app is running on (localhost while developing,
 // dealshare.dev in production), so the full URL is built here in the browser,
 // where window.location.origin always knows.
+
+// Same skeleton as ui.ts's btnSecondarySm, but with the text color split out
+// so it can flip to emerald while the "Copied ✓" confirmation is showing.
+const copyBtnBase =
+  'inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-zinc-950/10 bg-white px-3 text-sm font-medium shadow-[0_1px_2px_rgb(9_9_11/0.04)] transition-colors duration-150 hover:border-zinc-950/20 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-white/10 dark:bg-white/[.04] dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[.08]'
+
 export default function CopyLinkButton({ path }: { path: string }) {
   const [fullUrl, setFullUrl] = useState(path)
   const [copied, setCopied] = useState(false)
@@ -30,14 +36,18 @@ export default function CopyLinkButton({ path }: { path: string }) {
     <div className="flex min-w-0 items-center gap-2">
       <code
         title={fullUrl}
-        className="min-w-0 truncate rounded-lg bg-zinc-100 px-2.5 py-1.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+        className="min-w-0 truncate rounded-md border border-zinc-950/[.06] bg-zinc-950/[.03] px-2.5 py-1.5 font-mono text-xs text-zinc-600 dark:border-white/[.07] dark:bg-white/[.05] dark:text-zinc-400"
       >
         {fullUrl}
       </code>
       <button
         type="button"
         onClick={copy}
-        className="shrink-0 rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]"
+        className={`${copyBtnBase} ${
+          copied
+            ? 'text-emerald-700 dark:text-emerald-400'
+            : 'text-zinc-900 dark:text-zinc-100'
+        }`}
       >
         {copied ? 'Copied ✓' : 'Copy link'}
       </button>

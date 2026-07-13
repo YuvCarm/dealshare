@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useRef } from 'react'
+import { btnPrimary } from '@/app/ui'
 import { createCoInvestor, type ActionState } from './actions'
 import CoInvestorFields from './co-investor-fields'
 
@@ -22,15 +23,13 @@ export default function AddCoInvestorForm() {
       <CoInvestorFields />
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-11 rounded-lg bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
-        >
+        <button type="submit" disabled={pending} className={btnPrimary}>
           {pending ? 'Saving…' : 'Add co-investor'}
         </button>
         {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-        {state.ok && <p className="text-sm text-green-600 dark:text-green-400">Co-investor added ✓</p>}
+        {state.ok && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">Co-investor added ✓</p>
+        )}
       </div>
     </form>
   )

@@ -2,18 +2,21 @@
 
 import Link from 'next/link'
 import { useActionState, useEffect, useState } from 'react'
+import {
+  btnDanger,
+  btnDangerSolid,
+  btnPrimarySm,
+  btnSecondarySm,
+  inlineLink,
+  itemCard,
+  moneyCls,
+} from '@/app/ui'
 import { updateCoInvestor, deleteCoInvestor, type ActionState } from './actions'
 import CoInvestorFields from './co-investor-fields'
 import { WarmthDots } from './warmth'
 import type { CoInvestor } from './types'
 
 const initialState: ActionState = { ok: false }
-
-// Shared button looks.
-const secondaryBtn =
-  'rounded-lg border border-black/[.12] px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]'
-const primaryBtn =
-  'h-9 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]'
 
 // Format a dollar amount compactly: 250000 -> $250K, 1500000 -> $1.5M.
 function money(n: number | null): string | null {
@@ -53,10 +56,10 @@ export default function CoInvestorCard({ investor }: { investor: CoInvestor }) {
   const range = checkRange(investor.check_size_min, investor.check_size_max)
 
   return (
-    <li className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950">
+    <li className={itemCard}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="text-base font-semibold text-black dark:text-zinc-50">
+          <h3 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             <Link href={`/co-investors/${investor.id}`} className="hover:underline">
               {investor.name}
             </Link>
@@ -73,16 +76,17 @@ export default function CoInvestorCard({ investor }: { investor: CoInvestor }) {
           {stages && <span>Stages: {stages}</span>}
           {sectors && <span>Sectors: {sectors}</span>}
           {geos && <span>Geos: {geos}</span>}
-          {range && <span>Check: {range}</span>}
+          {range && (
+            <span>
+              Check: <span className={moneyCls}>{range}</span>
+            </span>
+          )}
         </div>
       )}
 
       {investor.email && (
         <div className="mt-2 text-sm">
-          <a
-            href={`mailto:${investor.email}`}
-            className="text-blue-600 hover:underline dark:text-blue-400"
-          >
+          <a href={`mailto:${investor.email}`} className={inlineLink}>
             {investor.email}
           </a>
         </div>
@@ -97,14 +101,10 @@ export default function CoInvestorCard({ investor }: { investor: CoInvestor }) {
       <div className="mt-4 flex items-center gap-2">
         {mode === 'view' ? (
           <>
-            <button type="button" onClick={() => setMode('edit')} className={secondaryBtn}>
+            <button type="button" onClick={() => setMode('edit')} className={btnSecondarySm}>
               Edit
             </button>
-            <button
-              type="button"
-              onClick={() => setMode('confirm')}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-            >
+            <button type="button" onClick={() => setMode('confirm')} className={btnDanger}>
               Delete
             </button>
           </>
@@ -125,14 +125,10 @@ function DeleteConfirm({ id, onCancel }: { id: string; onCancel: () => void }) {
     <form action={action} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={id} />
       <span className="text-sm text-zinc-600 dark:text-zinc-400">Are you sure?</span>
-      <button
-        type="submit"
-        disabled={pending}
-        className="h-9 rounded-lg bg-red-600 px-3 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className={btnDangerSolid}>
         {pending ? 'Deleting…' : 'Yes, delete'}
       </button>
-      <button type="button" onClick={onCancel} className={secondaryBtn}>
+      <button type="button" onClick={onCancel} className={btnSecondarySm}>
         Cancel
       </button>
       {state.error && <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>}
@@ -150,15 +146,15 @@ function EditCard({ investor, onClose }: { investor: CoInvestor; onClose: () => 
   }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <li className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950">
+    <li className={itemCard}>
       <form action={action} className="flex flex-col gap-4">
         <input type="hidden" name="id" value={investor.id} />
         <CoInvestorFields values={investor} />
         <div className="flex items-center gap-3">
-          <button type="submit" disabled={pending} className={primaryBtn}>
+          <button type="submit" disabled={pending} className={btnPrimarySm}>
             {pending ? 'Saving…' : 'Save changes'}
           </button>
-          <button type="button" onClick={onClose} className={secondaryBtn}>
+          <button type="button" onClick={onClose} className={btnSecondarySm}>
             Cancel
           </button>
           {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}

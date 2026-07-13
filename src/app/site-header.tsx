@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { signOut } from '@/app/auth/actions'
+import { btnSecondarySm } from '@/app/ui'
 
-// The shared top bar. /deals, /co-investors, and /packets render this so the
-// navigation and sign-out button look and behave identically on each page.
-// `active` decides which nav link is highlighted.
+// The shared top bar. /deals, /co-investors, /packets, and /inbound render
+// this so navigation and sign-out look and behave identically on each page.
+// It's sticky with a frosted-glass blur, so content scrolls underneath it —
+// anchor targets on those pages use scroll-mt-24 to land below it.
 export default function SiteHeader({
   email,
   active,
@@ -12,9 +14,13 @@ export default function SiteHeader({
   active: 'deals' | 'co-investors' | 'packets' | 'inbound'
 }) {
   return (
-    <header className="flex items-center justify-between border-b border-black/[.08] px-6 py-4 dark:border-white/[.145]">
+    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-950/[.06] bg-white/75 px-6 py-3 backdrop-blur-xl dark:border-white/[.08] dark:bg-zinc-950/75">
       <div className="flex items-center gap-4 sm:gap-6">
-        <Link href="/" className="text-lg font-semibold text-black dark:text-zinc-50">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+        >
+          <span aria-hidden className="h-2 w-2 rounded-full bg-accent" />
           DealShare
         </Link>
         <nav className="flex items-center gap-1 text-sm">
@@ -35,12 +41,12 @@ export default function SiteHeader({
 
       <div className="flex items-center gap-3 text-sm">
         {email && (
-          <span className="hidden text-zinc-500 sm:inline dark:text-zinc-400">{email}</span>
+          <span className="hidden font-mono text-xs text-zinc-500 sm:inline dark:text-zinc-400">
+            {email}
+          </span>
         )}
         <form action={signOut}>
-          <button className="rounded-lg border border-black/[.12] px-3 py-1.5 font-medium text-black transition-colors hover:bg-black/[.04] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.06]">
-            Sign out
-          </button>
+          <button className={btnSecondarySm}>Sign out</button>
         </form>
       </div>
     </header>
@@ -60,10 +66,10 @@ function NavLink({
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
-      className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+      className={`rounded-md px-2.5 py-1.5 font-medium transition-colors duration-150 ${
         active
-          ? 'bg-black/[.06] text-black dark:bg-white/[.1] dark:text-zinc-50'
-          : 'text-zinc-500 hover:bg-black/[.04] hover:text-black dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50'
+          ? 'bg-zinc-950/[.05] text-zinc-950 dark:bg-white/[.08] dark:text-zinc-50'
+          : 'text-zinc-500 hover:bg-zinc-950/[.04] hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/[.06] dark:hover:text-zinc-50'
       }`}
     >
       {children}

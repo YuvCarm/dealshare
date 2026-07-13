@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
 import EmptyState from '@/app/empty-state'
+import Badge from '@/app/badge'
+import { countCls, errorBox, inlineLink, itemCard, moneyCls, sectionCard } from '@/app/ui'
 import AddDealForm from './add-deal-form'
 
 type Deal = {
@@ -45,15 +47,14 @@ export default async function DealsPage() {
     .returns<Deal[]>()
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <SiteHeader email={user.email} active="deals" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <section
-          id="add-deal"
-          className="scroll-mt-6 rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950"
-        >
-          <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Add a deal</h1>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <section id="add-deal" className={`scroll-mt-24 ${sectionCard}`}>
+          <h1 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Add a deal
+          </h1>
           <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
             Only <strong>company name</strong> is required — fill in whatever you have.
           </p>
@@ -61,14 +62,13 @@ export default async function DealsPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
-            Your deals{deals ? ` (${deals.length})` : ''}
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Your deals
+            {deals && <span className={countCls}>({deals.length})</span>}
           </h2>
 
           {error && (
-            <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-              Couldn&apos;t load deals: {error.message}
-            </p>
+            <p className={`mt-4 ${errorBox}`}>Couldn&apos;t load deals: {error.message}</p>
           )}
 
           {deals && deals.length === 0 && (
@@ -82,18 +82,19 @@ export default async function DealsPage() {
 
           <ul className="mt-4 flex flex-col gap-3">
             {deals?.map((deal) => (
-              <li
-                key={deal.id}
-                className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950"
-              >
+              <li key={deal.id} className={itemCard}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-base font-semibold text-black dark:text-zinc-50">
+                  <h3 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
                     {deal.company_name}
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
                     {deal.company_stage && <Badge>{deal.company_stage}</Badge>}
-                    {deal.round_status && <Badge>{deal.round_status}</Badge>}
-                    {deal.your_fund_status && <Badge>{deal.your_fund_status}</Badge>}
+                    {deal.round_status && (
+                      <Badge value={deal.round_status}>{deal.round_status}</Badge>
+                    )}
+                    {deal.your_fund_status && (
+                      <Badge value={deal.your_fund_status}>{deal.your_fund_status}</Badge>
+                    )}
                   </div>
                 </div>
 
@@ -106,9 +107,21 @@ export default async function DealsPage() {
                   {deal.geography && <span>Geo: {deal.geography}</span>}
                   {deal.round_type && <span>Type: {deal.round_type.replace(/_/g, ' ')}</span>}
                   {deal.lead_investor && <span>Lead: {deal.lead_investor}</span>}
-                  {usd(deal.round_size) && <span>Round: {usd(deal.round_size)}</span>}
-                  {usd(deal.valuation_or_cap) && <span>Val/cap: {usd(deal.valuation_or_cap)}</span>}
-                  {usd(deal.committed_so_far) && <span>Committed: {usd(deal.committed_so_far)}</span>}
+                  {usd(deal.round_size) && (
+                    <span>
+                      Round: <span className={moneyCls}>{usd(deal.round_size)}</span>
+                    </span>
+                  )}
+                  {usd(deal.valuation_or_cap) && (
+                    <span>
+                      Val/cap: <span className={moneyCls}>{usd(deal.valuation_or_cap)}</span>
+                    </span>
+                  )}
+                  {usd(deal.committed_so_far) && (
+                    <span>
+                      Committed: <span className={moneyCls}>{usd(deal.committed_so_far)}</span>
+                    </span>
+                  )}
                 </div>
 
                 {(deal.website || deal.deck_url) && (
@@ -118,7 +131,7 @@ export default async function DealsPage() {
                         href={deal.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        className={inlineLink}
                       >
                         Website ↗
                       </a>
@@ -128,7 +141,7 @@ export default async function DealsPage() {
                         href={deal.deck_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        className={inlineLink}
                       >
                         Deck ↗
                       </a>
@@ -147,13 +160,5 @@ export default async function DealsPage() {
         </section>
       </main>
     </div>
-  )
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-      {children}
-    </span>
   )
 }

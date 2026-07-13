@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { btnPrimary, checkboxCls, radioCls } from '@/app/ui'
 import { createSharePacket, type PacketFormState } from './actions'
 import { DEFAULT_ON_KEYS, SHAREABLE_FIELDS, type ShareableFieldKey } from '../fields'
 
@@ -61,7 +62,7 @@ export default function NewPacketForm({
     <form action={formAction} className="flex flex-col gap-8">
       {/* Step 1 — who is this packet for? */}
       <section>
-        <h2 className="text-base font-semibold text-black dark:text-zinc-50">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
           1 · Who is it for?
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -71,16 +72,16 @@ export default function NewPacketForm({
           {coInvestors.map((investor) => (
             <label
               key={investor.id}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-black/[.08] bg-white p-4 has-[:checked]:border-black dark:border-white/[.145] dark:bg-zinc-950 dark:has-[:checked]:border-white"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-950/[.06] bg-surface p-4 transition-colors duration-150 has-[:checked]:border-indigo-500 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500/40 dark:border-white/[.08] dark:has-[:checked]:border-indigo-400 dark:has-[:checked]:ring-indigo-400/40"
             >
               <input
                 type="radio"
                 name="co_investor_id"
                 value={investor.id}
                 required
-                className="h-4 w-4"
+                className={radioCls}
               />
-              <span className="text-sm font-medium text-black dark:text-zinc-50">
+              <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
                 {investor.name}
               </span>
               {investor.fund_name && (
@@ -95,7 +96,7 @@ export default function NewPacketForm({
 
       {/* Step 2 — which deals, and which fields of each? */}
       <section>
-        <h2 className="text-base font-semibold text-black dark:text-zinc-50">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
           2 · Which deals?
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -108,10 +109,10 @@ export default function NewPacketForm({
             return (
               <div
                 key={deal.id}
-                className={`rounded-xl border bg-white p-4 dark:bg-zinc-950 ${
+                className={`rounded-xl border bg-surface p-4 transition-colors duration-150 ${
                   isSelected
-                    ? 'border-black dark:border-white'
-                    : 'border-black/[.08] dark:border-white/[.145]'
+                    ? 'border-indigo-500 ring-1 ring-indigo-500/40 dark:border-indigo-400 dark:ring-indigo-400/40'
+                    : 'border-zinc-950/[.06] dark:border-white/[.08]'
                 }`}
               >
                 <label className="flex cursor-pointer items-start gap-3">
@@ -120,10 +121,10 @@ export default function NewPacketForm({
                     name={`deal:${deal.id}`}
                     checked={isSelected}
                     onChange={() => toggleDeal(deal.id)}
-                    className="mt-0.5 h-4 w-4"
+                    className={`mt-0.5 ${checkboxCls}`}
                   />
                   <span className="flex flex-col">
-                    <span className="text-sm font-medium text-black dark:text-zinc-50">
+                    <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
                       {deal.company_name}
                     </span>
                     {deal.one_liner && (
@@ -137,9 +138,9 @@ export default function NewPacketForm({
                 {/* The field picker only exists in the page (and so in the
                     submitted form) while its deal is ticked. */}
                 {isSelected && (
-                  <div className="mt-4 border-t border-black/[.06] pt-4 dark:border-white/[.1]">
+                  <div className="mt-4 border-t border-zinc-950/[.06] pt-4 dark:border-white/[.1]">
                     {!deal.founder_consent && (
-                      <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                      <p className="mb-4 rounded-lg border border-amber-600/25 bg-amber-500/[.08] px-3 py-2 text-sm text-amber-800 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-200">
                         Have you confirmed the founder is OK with sharing this?
                       </p>
                     )}
@@ -167,14 +168,10 @@ export default function NewPacketForm({
       </section>
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-11 rounded-lg bg-foreground px-5 font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]"
-        >
+        <button type="submit" disabled={pending} className={btnPrimary}>
           {pending ? 'Creating…' : 'Create share packet'}
         </button>
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+        <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
           {selectedIds.length === 0
             ? 'No deals selected yet'
             : `${selectedIds.length} ${selectedIds.length === 1 ? 'deal' : 'deals'} selected`}
@@ -211,7 +208,7 @@ function FieldGroup({
               name={`field:${dealId}:${field.key}`}
               checked={ticked.includes(field.key)}
               onChange={() => onToggle(dealId, field.key)}
-              className="h-4 w-4"
+              className={checkboxCls}
             />
             <span className="text-sm text-zinc-700 dark:text-zinc-300">{field.label}</span>
           </label>

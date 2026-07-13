@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
+import Badge from '@/app/badge'
+import { countCls, errorBox, inlineLink, itemCard, moneyCls, sectionCard } from '@/app/ui'
 import CopyLinkButton from '@/app/packets/copy-link-button'
 import StatusChip from '@/app/packets/status-chip'
 import { statusLabel } from '@/app/inbound/types'
@@ -115,10 +117,10 @@ export default async function CoInvestorProfilePage({
   const loadError = investorError || packetsError || inboundError
   if (loadError || !investor) {
     return (
-      <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
+      <div className="flex min-h-full flex-1 flex-col bg-background">
         <SiteHeader email={user.email} active="co-investors" />
-        <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+        <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+          <p className={errorBox}>
             Couldn&apos;t load this profile: {loadError?.message ?? 'unknown error'}
           </p>
         </main>
@@ -144,22 +146,22 @@ export default async function CoInvestorProfilePage({
   const range = checkRange(investor.check_size_min, investor.check_size_max)
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <SiteHeader email={user.email} active="co-investors" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <Link
           href="/co-investors"
-          className="text-sm text-zinc-500 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="text-sm text-zinc-500 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
         >
           ← All co-investors
         </Link>
 
         {/* ----- Who they are ----- */}
-        <section className="mt-4 rounded-2xl border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
+        <section className={`mt-4 ${sectionCard}`}>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
                 {investor.name}
               </h1>
               {investor.fund_name && (
@@ -174,16 +176,17 @@ export default async function CoInvestorProfilePage({
               {stages && <span>Stages: {stages}</span>}
               {sectors && <span>Sectors: {sectors}</span>}
               {geos && <span>Geos: {geos}</span>}
-              {range && <span>Check: {range}</span>}
+              {range && (
+                <span>
+                  Check: <span className={moneyCls}>{range}</span>
+                </span>
+              )}
             </div>
           )}
 
           {investor.email && (
             <div className="mt-2 text-sm">
-              <a
-                href={`mailto:${investor.email}`}
-                className="text-blue-600 hover:underline dark:text-blue-400"
-              >
+              <a href={`mailto:${investor.email}`} className={inlineLink}>
                 {investor.email}
               </a>
             </div>
@@ -196,12 +199,20 @@ export default async function CoInvestorProfilePage({
           )}
 
           {/* ----- Reciprocity: who owes whom a deal ----- */}
-          <p className="mt-4 border-t border-black/[.06] pt-4 text-sm text-zinc-600 dark:border-white/[.1] dark:text-zinc-400">
-            <strong className="text-black dark:text-zinc-50">You → them:</strong>{' '}
-            {sharedDealIds.size} {sharedDealIds.size === 1 ? 'deal' : 'deals'}
+          <p className="mt-4 border-t border-zinc-950/[.06] pt-4 text-sm text-zinc-600 dark:border-white/[.08] dark:text-zinc-400">
+            <strong className="font-medium text-zinc-950 dark:text-zinc-50">You → them:</strong>{' '}
+            <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+              {sharedDealIds.size}
+            </span>{' '}
+            {sharedDealIds.size === 1 ? 'deal' : 'deals'}
             {lastSharedAt && ` (last: ${monthYear(lastSharedAt)})`}
             <span className="mx-2">·</span>
-            <strong className="text-black dark:text-zinc-50">Them → you:</strong> {receivedCount}{' '}
+            <strong className="font-medium text-zinc-950 dark:text-zinc-50">
+              Them → you:
+            </strong>{' '}
+            <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+              {receivedCount}
+            </span>{' '}
             {receivedCount === 1 ? 'deal' : 'deals'}
             {lastReceivedAt && ` (last: ${monthYear(lastReceivedAt)})`}
           </p>
@@ -209,17 +220,15 @@ export default async function CoInvestorProfilePage({
 
         {/* ----- Shared with them ----- */}
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
-            Shared with them{packets ? ` (${packets.length})` : ''}
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Shared with them
+            {packets && <span className={countCls}>({packets.length})</span>}
           </h2>
 
           {packets && packets.length === 0 && (
             <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
               No packets yet —{' '}
-              <Link
-                href="/packets/new"
-                className="text-blue-600 hover:underline dark:text-blue-400"
-              >
+              <Link href="/packets/new" className={inlineLink}>
                 create one →
               </Link>
             </p>
@@ -232,12 +241,9 @@ export default async function CoInvestorProfilePage({
                 .filter(Boolean)
                 .join(', ')
               return (
-                <li
-                  key={packet.id}
-                  className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950"
-                >
+                <li key={packet.id} className={itemCard}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-black dark:text-zinc-50">
+                    <span className="text-sm font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
                       {formatDate(packet.created_at)} · {packet.packet_deals.length}{' '}
                       {packet.packet_deals.length === 1 ? 'deal' : 'deals'}
                     </span>
@@ -257,14 +263,15 @@ export default async function CoInvestorProfilePage({
 
         {/* ----- Received from them ----- */}
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-black dark:text-zinc-50">
-            Received from them{inbound ? ` (${inbound.length})` : ''}
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Received from them
+            {inbound && <span className={countCls}>({inbound.length})</span>}
           </h2>
 
           {inbound && inbound.length === 0 && (
             <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
               Nothing yet — when they share a deal with you,{' '}
-              <Link href="/inbound" className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link href="/inbound" className={inlineLink}>
                 log it on the Inbound page →
               </Link>
             </p>
@@ -272,17 +279,12 @@ export default async function CoInvestorProfilePage({
 
           <ul className="mt-4 flex flex-col gap-3">
             {inbound?.map((deal) => (
-              <li
-                key={deal.id}
-                className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950"
-              >
+              <li key={deal.id} className={itemCard}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-black dark:text-zinc-50">
+                  <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
                     {deal.company_name}
                   </span>
-                  <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                    {statusLabel(deal.status)}
-                  </span>
+                  <Badge value={deal.status}>{statusLabel(deal.status)}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   {formatDate(deal.created_at)}
