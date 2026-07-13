@@ -1,7 +1,9 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useCallback, useEffect, useRef } from 'react'
 import { createDeal, type DealFormState } from './actions'
+import ExtractBox from './extract-box'
+import type { ExtractedDealFields } from './extract'
 
 // These match the enum values in the database exactly.
 const STAGES = ['pre-seed', 'seed', 'A', 'B+']
@@ -42,8 +44,30 @@ export default function AddDealForm() {
     if (state.ok) formRef.current?.reset()
   }, [state])
 
+  // Copy Claude's extracted values into the form fields. The form stays a
+  // plain uncontrolled form (nothing is saved here) — the user reviews and
+  // edits, then clicks "Add deal" like always. Fields Claude couldn't find
+  // (null) are skipped so anything already typed isn't wiped out.
+  const applyExtracted = useCallback((fields: ExtractedDealFields) => {
+    const form = formRef.current
+    if (!form) return
+    for (const [name, value] of Object.entries(fields)) {
+      if (value == null) continue
+      const el = form.elements.namedItem(name)
+      if (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el instanceof HTMLSelectElement
+      ) {
+        el.value = String(value)
+      }
+    }
+  }, [])
+
   return (
-    <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      <ExtractBox onExtracted={applyExtracted} />
+      <form ref={formRef} action={formAction} className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Company name *" className="sm:col-span-2">
           <input name="company_name" required placeholder="Acme Inc." className={inputCls} />
@@ -150,6 +174,7 @@ export default function AddDealForm() {
         {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
         {state.ok && <p className="text-sm text-green-600 dark:text-green-400">Deal added ✓</p>}
       </div>
-    </form>
+      </form>
+    </div>
   )
 }
