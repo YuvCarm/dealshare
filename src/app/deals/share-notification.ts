@@ -12,6 +12,17 @@
 const FROM = 'DealShare <notifications@dealshare.dev>'
 const APP_URL = 'https://dealshare.dev'
 
+// Company names are free text; keep the version that goes into the email to a
+// sane length so a pathologically long name can't bloat the message.
+const MAX_COMPANY_LEN = 120
+
+// A deliberately loose check — just enough to reject obvious non-addresses
+// (the fallback display string, a stray newline that could try to inject a
+// header). Resend does the real validation; this is our own front door.
+function looksLikeEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 // The company name is user-typed text going into an HTML email — escape it,
 // or a deal named "<img src=…>" would inject markup into the message.
 function escapeHtml(text: string): string {
@@ -26,10 +37,14 @@ function escapeHtml(text: string): string {
 export async function sendShareNotification({
   to,
   sharedBy,
+  sharerEmail,
   companyName,
 }: {
   to: string
+  // Display name for the sharer (their email, or a generic fallback).
   sharedBy: string
+  // The sharer's real email, if we have one — used only for reply-to.
+  sharerEmail?: string
   companyName: string
 }): Promise<void> {
   // Server-only secret: no NEXT_PUBLIC_ prefix, so Next.js never bundles it
@@ -42,8 +57,21 @@ export async function sendShareNotification({
     return
   }
 
+  // Recipient sanity check. to_email is stored lowercase by the DB but is
+  // otherwise free text the sharer typed into a co-investor; if it isn't a
+  // plausible address, don't hand Resend a bad request.
+  if (!looksLikeEmail(to)) {
+    console.error(`Share notification skipped — "${to}" is not a valid email address.`)
+    return
+  }
+
+  const displayCompany =
+    companyName.length > MAX_COMPANY_LEN
+      ? companyName.slice(0, MAX_COMPANY_LEN) + '…'
+      : companyName
+
   const sharer = escapeHtml(sharedBy)
-  const company = escapeHtml(companyName)
+  const company = escapeHtml(displayCompany)
 
   const html = `<div style="margin:0 auto;max-width:480px;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#18181b;">
   <p style="margin:0 0 24px;font-size:15px;font-weight:600;"><span style="color:#6366f1;">&#9679;</span> DealShare</p>
@@ -54,7 +82,7 @@ export async function sendShareNotification({
 </div>`
 
   // Plain-text twin for clients (and people) who prefer it.
-  const text = `${sharedBy} shared “${companyName}” with you on DealShare.\n\nSee it here: ${APP_URL}\n\nYou're receiving this because ${sharedBy} added you as a co-investor on DealShare.`
+  const text = `${sharedBy} shared “${displayCompany}” with you on DealShare.\n\nSee it here: ${APP_URL}\n\nYou're receiving this because ${sharedBy} added you as a co-investor on DealShare.`
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -68,11 +96,15 @@ export async function sendShareNotification({
       body: JSON.stringify({
         from: FROM,
         to: [to],
-        // Replying to the notification goes straight to the sharer.
-        reply_to: sharedBy,
         subject: `${sharedBy} shared a deal with you on DealShare`,
         html,
         text,
+        // Replying goes straight to the sharer — but only when we actually
+        // have their email. A non-address here would make Resend reject the
+        // whole send, so omit the field rather than risk that.
+        ...(sharerEmail && looksLikeEmail(sharerEmail)
+          ? { reply_to: sharerEmail }
+          : {}),
       }),
     })
 
@@ -84,7 +116,7 @@ export async function sendShareNotification({
       )
       return
     }
-    console.log(`Share notification email sent to ${to} for “${companyName}”.`)
+    console.log(`Share notification email sent to ${to} for “${displayCompany}”.`)
   } catch (error) {
     // Network trouble, DNS, the 10s timeout — all end here as a log line.
     console.error(`Share notification email to ${to} failed:`, error)

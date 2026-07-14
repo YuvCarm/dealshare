@@ -124,6 +124,7 @@ export async function createDealShare(
     sendShareNotification({
       to: toEmail,
       sharedBy: user.email ?? 'A DealShare user',
+      sharerEmail: user.email,
       companyName: deal.company_name,
     })
   )
