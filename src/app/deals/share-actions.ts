@@ -1,8 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SHAREABLE_FIELDS } from '@/app/packets/fields'
+import { sendShareNotification } from './share-notification'
 
 export type ShareFormState = { ok: boolean; error?: string }
 
@@ -113,6 +115,19 @@ export async function createDealShare(
     }
     return { ok: false, error: insertError.message }
   }
+
+  // Tell the co-investor by email — but only AFTER the response is sent.
+  // `after()` runs this once the share is already saved and acknowledged, so
+  // a slow or broken email service can't block or break sharing (and the
+  // function itself never throws — see share-notification.ts).
+  after(() =>
+    sendShareNotification({
+      to: toEmail,
+      sharedBy: user.email ?? 'A DealShare user',
+      sharerEmail: user.email,
+      companyName: deal.company_name,
+    })
+  )
 
   // Refresh the "Shared by me" page so the new share is there when they look.
   revalidatePath('/shared')
