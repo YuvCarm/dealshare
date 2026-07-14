@@ -44,6 +44,9 @@ as $$
 $$;
 
 -- Signed-in users only — an anonymous visitor has no auth.uid(), so there is
--- nothing this function could ever do for them.
-revoke all on function public.claim_deal_shares() from public;
+-- nothing this function could ever do for them. Note `anon` is revoked BY
+-- NAME: Supabase's default privileges hand every new function to anon
+-- directly, and revoking from `public` alone would leave that direct grant
+-- standing (Supabase's own docs call this out).
+revoke all on function public.claim_deal_shares() from public, anon;
 grant execute on function public.claim_deal_shares() to authenticated;

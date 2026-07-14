@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import {
   btnPrimarySm,
   btnSecondarySm,
@@ -10,7 +10,11 @@ import {
   inlineLink,
   inputCls,
 } from '@/app/ui'
-import { SHAREABLE_FIELDS } from '@/app/packets/fields'
+import {
+  DEFAULT_ON_KEYS,
+  SHAREABLE_FIELDS,
+  type ShareableFieldKey,
+} from '@/app/packets/fields'
 import { createDealShare, type ShareFormState } from './share-actions'
 
 // The slice of co_investors the share form needs — the page queries exactly this.
@@ -40,16 +44,7 @@ export default function ShareDealButton({
   coInvestors: CoInvestorOption[]
 }) {
   const [open, setOpen] = useState(false)
-  const [state, formAction, pending] = useActionState(createDealShare, initialState)
-
-  // A successful share closes the form; the confirmation shows by the button.
-  // (This is React's documented "adjust state while rendering" pattern — it
-  // reacts to the action's result without an effect.)
-  const [seenState, setSeenState] = useState(state)
-  if (state !== seenState) {
-    setSeenState(state)
-    if (state.ok) setOpen(false)
-  }
+  const [shared, setShared] = useState(false)
 
   if (!open) {
     return (
@@ -57,7 +52,7 @@ export default function ShareDealButton({
         <button type="button" onClick={() => setOpen(true)} className={btnSecondarySm}>
           Share with co-investor
         </button>
-        {state.ok && (
+        {shared && (
           <span className="text-sm text-emerald-700 dark:text-emerald-400">
             Shared ✓{' '}
             <Link href="/shared" className={inlineLink}>
@@ -105,6 +100,55 @@ export default function ShareDealButton({
   }
 
   return (
+    <ShareDealForm
+      dealId={dealId}
+      founderConsent={founderConsent}
+      coInvestors={coInvestors}
+      onDone={() => {
+        setOpen(false)
+        setShared(true)
+      }}
+      onCancel={() => setOpen(false)}
+    />
+  )
+}
+
+// The form proper. It mounts fresh every time the panel opens and unmounts on
+// close, so a reopened form always starts clean: default ticks, no recipient
+// picked, no leftover error from an earlier attempt.
+function ShareDealForm({
+  dealId,
+  founderConsent,
+  coInvestors,
+  onDone,
+  onCancel,
+}: {
+  dealId: string
+  founderConsent: boolean
+  coInvestors: CoInvestorOption[]
+  onDone: () => void
+  onCancel: () => void
+}) {
+  const [state, formAction, pending] = useActionState(createDealShare, initialState)
+
+  // Controlled on purpose: React 19 resets a form's UNcontrolled inputs back
+  // to their defaults whenever the action finishes — even when it returns an
+  // error. Keeping the recipient and the ticks in state means a failed submit
+  // can never silently revert the choices you made before retrying.
+  const [coInvestorId, setCoInvestorId] = useState('')
+  const [ticked, setTicked] = useState<ShareableFieldKey[]>(DEFAULT_ON_KEYS)
+
+  useEffect(() => {
+    if (state.ok) onDone()
+  }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleField(key: ShareableFieldKey) {
+    setTicked((current) =>
+      current.includes(key) ? current.filter((k) => k !== key) : [...current, key]
+    )
+  }
+
+  return (
     <form
       action={formAction}
       className="mt-4 rounded-xl border border-indigo-500 bg-surface p-4 ring-1 ring-indigo-500/40 dark:border-indigo-400 dark:ring-indigo-400/40"
@@ -119,7 +163,13 @@ export default function ShareDealButton({
 
       <label className="flex flex-col gap-1">
         <span className={fieldLabel}>Share with *</span>
-        <select name="co_investor_id" required defaultValue="" className={inputCls}>
+        <select
+          name="co_investor_id"
+          required
+          value={coInvestorId}
+          onChange={(event) => setCoInvestorId(event.target.value)}
+          className={inputCls}
+        >
           <option value="" disabled>
             Choose a co-investor…
           </option>
@@ -139,15 +189,25 @@ export default function ShareDealButton({
       </label>
 
       <div className="mt-4 border-t border-zinc-950/[.06] pt-4 dark:border-white/[.1]">
-        <FieldGroup title="Shared by default" fields={DEFAULT_ON_FIELDS} />
-        <FieldGroup title="Private — only shared if you tick them" fields={DEFAULT_OFF_FIELDS} />
+        <FieldGroup
+          title="Shared by default"
+          fields={DEFAULT_ON_FIELDS}
+          ticked={ticked}
+          onToggle={toggleField}
+        />
+        <FieldGroup
+          title="Private — only shared if you tick them"
+          fields={DEFAULT_OFF_FIELDS}
+          ticked={ticked}
+          onToggle={toggleField}
+        />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button type="submit" disabled={pending} className={btnPrimarySm}>
           {pending ? 'Sharing…' : 'Share deal'}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className={btnSecondarySm}>
+        <button type="button" onClick={onCancel} className={btnSecondarySm}>
           Cancel
         </button>
         {state.error && (
@@ -161,9 +221,13 @@ export default function ShareDealButton({
 function FieldGroup({
   title,
   fields,
+  ticked,
+  onToggle,
 }: {
   title: string
   fields: (typeof SHAREABLE_FIELDS)[number][]
+  ticked: ShareableFieldKey[]
+  onToggle: (key: ShareableFieldKey) => void
 }) {
   return (
     <fieldset className="mt-3 first:mt-0">
@@ -173,12 +237,11 @@ function FieldGroup({
       <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
         {fields.map((field) => (
           <label key={field.key} className="flex cursor-pointer items-center gap-2">
-            {/* Uncontrolled on purpose: the form only exists while it's open,
-                so closing it naturally resets every tick to the defaults. */}
             <input
               type="checkbox"
               name={`field:${field.key}`}
-              defaultChecked={field.defaultOn}
+              checked={ticked.includes(field.key)}
+              onChange={() => onToggle(field.key)}
               className={checkboxCls}
             />
             <span className="text-sm text-zinc-700 dark:text-zinc-300">{field.label}</span>
