@@ -3,25 +3,20 @@
 /*
  * DealShare theme — "Graphite Signal".
  * Near-monochrome zinc, one electric indigo accent, semantic status color.
- * Light/dark is driven purely by prefers-color-scheme (no toggle).
+ * The app is LOCKED to dark mode: the `dark` class sits permanently on
+ * <html> (see layout.tsx), and the variant below makes every `dark:` utility
+ * follow that class instead of the visitor's OS setting.
  */
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  color-scheme: light dark; /* native selects, scrollbars, autofill match the mode */
+  color-scheme: dark; /* native selects, scrollbars, autofill render dark too */
 
-  --background: #fafafa; /* zinc-50 — the page canvas */
-  --surface: #ffffff;    /* cards sit one step above the canvas */
-  --foreground: #09090b; /* zinc-950 — primary text */
-  --accent: #4f46e5;     /* indigo-600 — focus rings, links, selection ONLY */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b; /* zinc-950 — never pure black */
-    --surface: #111113;    /* one step above the canvas */
-    --foreground: #fafafa;
-    --accent: #818cf8;     /* indigo-400 — reads electric on near-black */
-  }
+  --background: #09090b; /* zinc-950 — never pure black */
+  --surface: #111113;    /* cards sit one step above the canvas */
+  --foreground: #fafafa; /* primary text */
+  --accent: #818cf8;     /* indigo-400 — reads electric on near-black */
 }
 
 @theme inline {
@@ -64,13 +59,7 @@ body {
 
 /* The accent shows up when you select text — a small signature. */
 ::selection {
-  background: rgb(79 70 229 / 0.15);
-}
-
-@media (prefers-color-scheme: dark) {
-  ::selection {
-    background: rgb(129 140 248 / 0.28);
-  }
+  background: rgb(129 140 248 / 0.28);
 }
 
 @media (prefers-reduced-motion: reduce) {
