@@ -33,10 +33,13 @@ export async function setDealShareRevoked(
   const revoke = formData.get('revoke') === 'true'
 
   // RLS makes sure this only ever touches a share this user created.
-  const { error } = await supabase
+  // .select() lets us tell a real change apart from a no-op (e.g. the row was
+  // deleted meanwhile), so we don't report success for a row that's gone.
+  const { data: updated, error } = await supabase
     .from('deal_shares')
     .update({ status: revoke ? 'revoked' : 'active' })
     .eq('id', id)
+    .select('id')
 
   if (error) {
     // Only one ACTIVE share per deal per person — restoring while a newer
@@ -49,6 +52,9 @@ export async function setDealShareRevoked(
       }
     }
     return { ok: false, error: error.message }
+  }
+  if (!updated || updated.length === 0) {
+    return { ok: false, error: 'That share no longer exists.' }
   }
 
   revalidatePath('/shared')

@@ -21,7 +21,6 @@ export default function ShareRowActions({
     setDealShareRevoked,
     initialState
   )
-  const [deleteState, deleteAction, deletePending] = useActionState(deleteDealShare, initialState)
   const [confirming, setConfirming] = useState(false)
 
   // Active share: a single Revoke button (unchanged behaviour).
@@ -40,30 +39,15 @@ export default function ShareRowActions({
     )
   }
 
-  // Revoked share, mid-delete: the "are you sure?" step.
+  // Revoked share, mid-delete: the confirm step lives in its own component so
+  // it mounts fresh every time it opens — no error left over from a previous
+  // attempt (same shape as DeleteConfirm in co-investor-card / inbound-card).
   if (confirming) {
-    return (
-      <form action={deleteAction} className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="id" value={shareId} />
-        <span className="text-sm text-zinc-600 dark:text-zinc-400">Delete this share for good?</span>
-        <button type="submit" disabled={deletePending} className={`shrink-0 ${btnDangerSolid}`}>
-          {deletePending ? 'Deleting…' : 'Yes, delete'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(false)}
-          className={`shrink-0 ${btnSecondarySm}`}
-        >
-          Cancel
-        </button>
-        {deleteState.error && (
-          <span className="text-sm text-red-600 dark:text-red-400">{deleteState.error}</span>
-        )}
-      </form>
-    )
+    return <DeleteConfirm shareId={shareId} onCancel={() => setConfirming(false)} />
   }
 
-  // Revoked share, at rest: Restore or open the delete confirmation.
+  // Revoked share, at rest: Restore, or open the delete confirmation. Delete is
+  // disabled while a Restore is in flight so the two can't race each other.
   return (
     <div className="flex flex-wrap items-center gap-2">
       <form action={revokeAction} className="flex items-center gap-2">
@@ -76,6 +60,7 @@ export default function ShareRowActions({
       <button
         type="button"
         onClick={() => setConfirming(true)}
+        disabled={revokePending}
         className={`shrink-0 ${btnDanger}`}
       >
         Delete
@@ -84,5 +69,25 @@ export default function ShareRowActions({
         <span className="text-sm text-red-600 dark:text-red-400">{revokeState.error}</span>
       )}
     </div>
+  )
+}
+
+function DeleteConfirm({ shareId, onCancel }: { shareId: string; onCancel: () => void }) {
+  const [state, action, pending] = useActionState(deleteDealShare, initialState)
+
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input type="hidden" name="id" value={shareId} />
+      <span className="text-sm text-zinc-600 dark:text-zinc-400">Delete this share for good?</span>
+      <button type="submit" disabled={pending} className={`shrink-0 ${btnDangerSolid}`}>
+        {pending ? 'Deleting…' : 'Yes, delete'}
+      </button>
+      <button type="button" onClick={onCancel} className={`shrink-0 ${btnSecondarySm}`}>
+        Cancel
+      </button>
+      {state.error && (
+        <span className="text-sm text-red-600 dark:text-red-400">{state.error}</span>
+      )}
+    </form>
   )
 }
