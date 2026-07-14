@@ -54,3 +54,45 @@ export async function setDealShareRevoked(
   revalidatePath('/shared')
   return { ok: true }
 }
+
+// Permanently remove a share. Only REVOKED shares can be deleted — a live one
+// must be revoked first — so a stray click (or a forged request) can never
+// wipe out an active share. RLS already limits this to the user's own shares;
+// the status filter is the extra guard, because deleting can't be undone.
+export async function deleteDealShare(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: 'You must be signed in to delete a share.' }
+  }
+
+  const id = formData.get('id')
+  if (typeof id !== 'string' || id === '') {
+    return { ok: false, error: 'Missing share id.' }
+  }
+
+  // .select() makes the delete return the rows it removed, so we can tell an
+  // "it wasn't revoked / wasn't yours" no-op apart from a real deletion.
+  const { data: deleted, error } = await supabase
+    .from('deal_shares')
+    .delete()
+    .eq('id', id)
+    .eq('status', 'revoked')
+    .select('id')
+
+  if (error) {
+    return { ok: false, error: error.message }
+  }
+  if (!deleted || deleted.length === 0) {
+    return { ok: false, error: 'Only revoked shares can be deleted — revoke it first.' }
+  }
+
+  revalidatePath('/shared')
+  return { ok: true }
+}
