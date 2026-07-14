@@ -33,10 +33,13 @@ export async function setDealShareRevoked(
   const revoke = formData.get('revoke') === 'true'
 
   // RLS makes sure this only ever touches a share this user created.
-  const { error } = await supabase
+  // .select() lets us tell a real change apart from a no-op (e.g. the row was
+  // deleted meanwhile), so we don't report success for a row that's gone.
+  const { data: updated, error } = await supabase
     .from('deal_shares')
     .update({ status: revoke ? 'revoked' : 'active' })
     .eq('id', id)
+    .select('id')
 
   if (error) {
     // Only one ACTIVE share per deal per person — restoring while a newer
@@ -49,6 +52,51 @@ export async function setDealShareRevoked(
       }
     }
     return { ok: false, error: error.message }
+  }
+  if (!updated || updated.length === 0) {
+    return { ok: false, error: 'That share no longer exists.' }
+  }
+
+  revalidatePath('/shared')
+  return { ok: true }
+}
+
+// Permanently remove a share. Only REVOKED shares can be deleted — a live one
+// must be revoked first — so a stray click (or a forged request) can never
+// wipe out an active share. RLS already limits this to the user's own shares;
+// the status filter is the extra guard, because deleting can't be undone.
+export async function deleteDealShare(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: 'You must be signed in to delete a share.' }
+  }
+
+  const id = formData.get('id')
+  if (typeof id !== 'string' || id === '') {
+    return { ok: false, error: 'Missing share id.' }
+  }
+
+  // .select() makes the delete return the rows it removed, so we can tell an
+  // "it wasn't revoked / wasn't yours" no-op apart from a real deletion.
+  const { data: deleted, error } = await supabase
+    .from('deal_shares')
+    .delete()
+    .eq('id', id)
+    .eq('status', 'revoked')
+    .select('id')
+
+  if (error) {
+    return { ok: false, error: error.message }
+  }
+  if (!deleted || deleted.length === 0) {
+    return { ok: false, error: 'Only revoked shares can be deleted — revoke it first.' }
   }
 
   revalidatePath('/shared')

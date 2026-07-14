@@ -6,7 +6,7 @@ import EmptyState from '@/app/empty-state'
 import StatusChip from '@/app/packets/status-chip'
 import { SHAREABLE_FIELDS } from '@/app/packets/fields'
 import { countCls, errorBox, itemCard } from '@/app/ui'
-import ShareRevokeButton from './share-revoke-button'
+import ShareRowActions from './share-row-actions'
 
 type ShareRow = {
   id: string
@@ -147,7 +147,7 @@ export default async function SharedPage() {
                       fields included
                     </p>
                     <div className="mt-4">
-                      <ShareRevokeButton
+                      <ShareRowActions
                         shareId={share.id}
                         revoked={share.status === 'revoked'}
                       />
