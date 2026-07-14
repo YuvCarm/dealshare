@@ -5,6 +5,7 @@ import EmptyState from '@/app/empty-state'
 import Badge from '@/app/badge'
 import { countCls, errorBox, inlineLink, itemCard, moneyCls, sectionCard } from '@/app/ui'
 import AddDealForm from './add-deal-form'
+import ShareDealButton, { type CoInvestorOption } from './share-deal-button'
 
 type Deal = {
   id: string
@@ -45,6 +46,14 @@ export default async function DealsPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .returns<Deal[]>()
+
+  // For the per-deal share form. If this load fails the deals still render —
+  // the share form just behaves as if there were no co-investors yet.
+  const { data: coInvestors } = await supabase
+    .from('co_investors')
+    .select('id, name, fund_name, email')
+    .order('name')
+    .returns<CoInvestorOption[]>()
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
@@ -154,6 +163,12 @@ export default async function DealsPage() {
                     {deal.notes}
                   </p>
                 )}
+
+                <ShareDealButton
+                  dealId={deal.id}
+                  founderConsent={deal.founder_consent}
+                  coInvestors={coInvestors ?? []}
+                />
               </li>
             ))}
           </ul>

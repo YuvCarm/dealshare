@@ -18,6 +18,13 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) {
+      // The user is signed in as of this line. Claim any deal shares that were
+      // addressed to their email before their account existed (fills in
+      // to_user_id — see migration 0008). Best-effort on purpose: if the
+      // migration hasn't run yet the function doesn't exist, and sign-in must
+      // never break over it, so the result is deliberately ignored.
+      await supabase.rpc('claim_deal_shares')
+
       // On Vercel, request.url's origin can be an internal address, so prefer
       // the public host from x-forwarded-host when deployed (never localhost).
       const forwardedHost = request.headers.get('x-forwarded-host')
