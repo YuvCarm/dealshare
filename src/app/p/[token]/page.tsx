@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Badge from '@/app/badge'
 import { inlineLink, itemCard, moneyCls } from '@/app/ui'
-import { SHAREABLE_FIELDS, type ShareableFieldKey } from '@/app/packets/fields'
+import { type ShareableFieldKey } from '@/app/packets/fields'
 
 // This page is PUBLIC — anyone with the link can open it, logged in or not.
 // It deliberately has no auth check and no site navigation. All data comes
