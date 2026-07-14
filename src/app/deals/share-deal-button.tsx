@@ -131,10 +131,8 @@ function ShareDealForm({
 }) {
   const [state, formAction, pending] = useActionState(createDealShare, initialState)
 
-  // Controlled on purpose: React 19 resets a form's UNcontrolled inputs back
-  // to their defaults whenever the action finishes — even when it returns an
-  // error. Keeping the recipient and the ticks in state means a failed submit
-  // can never silently revert the choices you made before retrying.
+  // Kept in state (with an onReset veto on the form below) so the recipient
+  // and ticks are owned by React, not the DOM's mount-time defaults.
   const [coInvestorId, setCoInvestorId] = useState('')
   const [ticked, setTicked] = useState<ShareableFieldKey[]>(DEFAULT_ON_KEYS)
 
@@ -151,6 +149,12 @@ function ShareDealForm({
   return (
     <form
       action={formAction}
+      // React 19 resets every form field to its mount-time default whenever
+      // the action finishes — including when it returns an ERROR, which would
+      // silently discard the user's picks right before a retry (and re-share
+      // fields they deliberately unticked). The reset arrives as a cancelable
+      // native event, so veto it; on success the form unmounts anyway.
+      onReset={(event) => event.preventDefault()}
       className="mt-4 rounded-xl border border-indigo-500 bg-surface p-4 ring-1 ring-indigo-500/40 dark:border-indigo-400 dark:ring-indigo-400/40"
     >
       <input type="hidden" name="deal_id" value={dealId} />
