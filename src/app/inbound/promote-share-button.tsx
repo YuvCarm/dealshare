@@ -23,7 +23,7 @@ export default function PromoteShareButton({
 
   if (alreadyAdded || state.ok) {
     return (
-      <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-400">
+      <p className="text-sm text-emerald-700 dark:text-emerald-400">
         Added ✓{' '}
         <Link
           href="/deals?tab=promoted_from_inbound"
@@ -36,7 +36,7 @@ export default function PromoteShareButton({
   }
 
   return (
-    <form action={action} className="mt-4 flex flex-wrap items-center gap-2">
+    <form action={action} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="share_id" value={shareId} />
       <button type="submit" disabled={pending} className={btnSecondarySm}>
         {pending ? 'Adding…' : 'Add to my pipeline'}
