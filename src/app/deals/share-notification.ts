@@ -39,6 +39,7 @@ export async function sendShareNotification({
   sharedBy,
   sharerEmail,
   companyName,
+  dealCount = 1,
 }: {
   to: string
   // Display name for the sharer (their email, or a generic fallback).
@@ -46,6 +47,10 @@ export async function sendShareNotification({
   // The sharer's real email, if we have one — used only for reply-to.
   sharerEmail?: string
   companyName: string
+  // How many deals this notification covers. The app shares one deal at a
+  // time today, so this is 1 — but the copy pluralizes correctly if a batch
+  // share path ever passes more.
+  dealCount?: number
 }): Promise<void> {
   // Server-only secret: no NEXT_PUBLIC_ prefix, so Next.js never bundles it
   // into code the browser can see. If it isn't set (fresh checkout, or the
@@ -73,16 +78,21 @@ export async function sendShareNotification({
   const sharer = escapeHtml(sharedBy)
   const company = escapeHtml(displayCompany)
 
+  // "1 deal" / "3 deals" — and the recipient lands straight on their Inbound
+  // page, where in-app shares appear.
+  const deals = `${dealCount} ${dealCount === 1 ? 'deal' : 'deals'}`
+  const inboundUrl = `${APP_URL}/inbound`
+
   const html = `<div style="margin:0 auto;max-width:480px;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#18181b;">
   <p style="margin:0 0 24px;font-size:15px;font-weight:600;"><span style="color:#6366f1;">&#9679;</span> DealShare</p>
-  <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">${sharer} shared a deal with you</h1>
-  <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#52525b;">&ldquo;${company}&rdquo; was shared with you on DealShare.</p>
-  <a href="${APP_URL}" style="display:inline-block;background:#18181b;color:#ffffff;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;">Open DealShare</a>
+  <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">${sharer} shared ${deals} with you</h1>
+  <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#52525b;">&ldquo;${company}&rdquo; was shared with you on DealShare. It&rsquo;s waiting on your Inbound page.</p>
+  <a href="${inboundUrl}" style="display:inline-block;background:#18181b;color:#ffffff;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:500;text-decoration:none;">See what they shared</a>
   <p style="margin:32px 0 0;font-size:12px;line-height:1.6;color:#a1a1aa;">You&rsquo;re receiving this because ${sharer} added you as a co-investor on DealShare.</p>
 </div>`
 
   // Plain-text twin for clients (and people) who prefer it.
-  const text = `${sharedBy} shared “${displayCompany}” with you on DealShare.\n\nSee it here: ${APP_URL}\n\nYou're receiving this because ${sharedBy} added you as a co-investor on DealShare.`
+  const text = `${sharedBy} shared ${deals} with you on DealShare: “${displayCompany}”.\n\nSee it here: ${inboundUrl}\n\nYou're receiving this because ${sharedBy} added you as a co-investor on DealShare.`
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -96,7 +106,7 @@ export async function sendShareNotification({
       body: JSON.stringify({
         from: FROM,
         to: [to],
-        subject: `${sharedBy} shared a deal with you on DealShare`,
+        subject: `${sharedBy} shared ${deals} with you on DealShare`,
         html,
         text,
         // Replying goes straight to the sharer — but only when we actually
