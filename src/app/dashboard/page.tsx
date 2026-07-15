@@ -8,8 +8,10 @@ import type { InAppShare } from '@/app/inbound/types'
 
 // The signed-in home: a read-only summary of everything the other pages manage.
 // It answers four questions at a glance — how big is my pipeline, what's open,
-// who's waiting on me, and what have I got out there — then shows who my deal
-// flow actually runs through (the reciprocity table) and what happened lately.
+// who's waiting on me, and what have I got out there — then a row of visual
+// breakdowns (monthly deal flow, fund-status split, network warmth), then who
+// my deal flow actually runs through (the reciprocity table) and what
+// happened lately.
 
 // ---- Row shapes ------------------------------------------------------------
 // Each query selects only what the dashboard reads. `source` and
@@ -21,6 +23,7 @@ type DealRow = {
   company_name: string
   company_stage: string | null
   round_status: string | null
+  your_fund_status: string | null
   source?: string | null
   promoted_from_share_id?: string | null
 }
@@ -35,6 +38,7 @@ type SentShare = {
 }
 
 type PacketRow = {
+  created_at: string
   co_investor_id: string | null
   packet_deals: { deal_id: string }[]
 }
@@ -101,7 +105,7 @@ export default async function DashboardPage() {
       .returns<InvestorRow[]>(),
     supabase
       .from('share_packets')
-      .select('co_investor_id, packet_deals ( deal_id )')
+      .select('created_at, co_investor_id, packet_deals ( deal_id )')
       .returns<PacketRow[]>(),
     supabase
       .from('inbound_deals')
@@ -298,6 +302,69 @@ export default async function DashboardPage() {
   ]
   const maxStageCount = Math.max(...stageRows.map((r) => r.count), 1)
 
+  // ---- Visual breakdowns -----------------------------------------------------
+  // Deal flow per month, last six months: what you sent out (direct shares +
+  // packet deals) vs. what reached you (in-app shares + logged inbound).
+  // Counts are events, not distinct deals — this chart is momentum, not
+  // inventory. Received history only covers shares still visible to you
+  // (revoked/hidden ones never leave Postgres), same as everywhere else.
+  const monthKey = (d: Date) => `${d.getUTCFullYear()}-${d.getUTCMonth()}`
+  const flowMonths = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1))
+    return {
+      key: monthKey(d),
+      label: d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }),
+      sent: 0,
+      received: 0,
+    }
+  })
+  const flowByKey = new Map(flowMonths.map((m) => [m.key, m]))
+  const bump = (iso: string, side: 'sent' | 'received', by = 1) => {
+    const bucket = flowByKey.get(monthKey(new Date(iso)))
+    if (bucket) bucket[side] += by
+  }
+  for (const share of sentShares) bump(share.created_at, 'sent')
+  for (const packet of packets) bump(packet.created_at, 'sent', packet.packet_deals.length)
+  for (const share of inboundShares) bump(share.created_at, 'received')
+  for (const row of manualInbound) bump(row.created_at, 'received')
+  const maxFlow = Math.max(...flowMonths.map((m) => Math.max(m.sent, m.received)), 1)
+  const totalFlowSent = flowMonths.reduce((n, m) => n + m.sent, 0)
+  const totalFlowReceived = flowMonths.reduce((n, m) => n + m.received, 0)
+  const hasFlow = totalFlowSent + totalFlowReceived > 0
+
+  // My stance on each deal, as one part-to-whole bar. The hues are the same
+  // semantic ones the Badge component wears (evaluating amber, investing
+  // indigo, passed rose); the legend carries the actual counts, so color is
+  // never the only channel. Unjudged deals get the recessive gray again.
+  const fundStatuses = [
+    { value: 'evaluating', label: 'Evaluating', fill: '#fbbf24' },
+    { value: 'investing', label: 'Investing', fill: '#818cf8' },
+    { value: 'passed', label: 'Passed', fill: '#fb7185' },
+  ].map((status) => ({
+    ...status,
+    count: deals.filter((d) => d.your_fund_status === status.value).length,
+  }))
+  const unjudged = deals.length - fundStatuses.reduce((sum, s) => sum + s.count, 0)
+  const fundSegments = [
+    ...fundStatuses,
+    ...(unjudged > 0 ? [{ value: 'none', label: 'No status', fill: '#52525b', count: unjudged }] : []),
+  ].filter((s) => s.count > 0)
+
+  // Network warmth histogram: co-investors at each warmth level, in the same
+  // amber that WarmthDots uses everywhere, plus a gray bin for "not set".
+  const warmthBins = [1, 2, 3, 4, 5].map((level) => ({
+    key: String(level),
+    label: String(level),
+    fill: '#f59e0b',
+    count: investors.filter((i) => i.warmth === level).length,
+  }))
+  const warmthUnset = investors.filter((i) => i.warmth == null).length
+  const warmthRows = [
+    ...warmthBins,
+    ...(warmthUnset > 0 ? [{ key: 'none', label: '—', fill: '#52525b', count: warmthUnset }] : []),
+  ]
+  const maxWarmth = Math.max(...warmthRows.map((r) => r.count), 1)
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <SiteHeader email={user.email} active="dashboard" />
@@ -340,6 +407,175 @@ export default async function DashboardPage() {
             context={`to ${activeRecipients} ${activeRecipients === 1 ? 'recipient' : 'recipients'}`}
             href="/shared"
           />
+        </div>
+
+        {/* Three visual breakdowns, one glance each: momentum (flow over
+            time), judgment (fund status), and network temperature (warmth).
+            Grid children stretch to the tallest card so the row reads level. */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          {/* Deal flow — paired monthly columns, the page's only two-series
+              chart, so it gets the legend (with totals as the visible numbers). */}
+          <section className={sectionCard}>
+            <CardHeader title="Deal flow" href="/shared" linkLabel="All shares" />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Shares sent vs. received, last 6 months.
+            </p>
+
+            {!hasFlow ? (
+              <CardEmpty
+                body="No deal flow in the last 6 months. Share a deal, or log one someone sent you."
+                href="/deals"
+                cta="Share a deal"
+              />
+            ) : (
+              <div className="mt-5">
+                <div className="flex items-end justify-between gap-2 border-b border-zinc-950/[.08] dark:border-white/[.08]">
+                  {flowMonths.map((m) => (
+                    <div
+                      key={m.key}
+                      className="flex flex-1 flex-col items-center"
+                      title={`${m.label}: ${m.sent} sent · ${m.received} received`}
+                    >
+                      <span className="sr-only">
+                        {m.label}: {m.sent} sent, {m.received} received
+                      </span>
+                      <div aria-hidden className="flex items-end gap-[2px]">
+                        <div
+                          className="w-2.5 rounded-t-[4px]"
+                          style={{
+                            height: `${(m.sent / maxFlow) * 88}px`,
+                            minHeight: m.sent ? 2 : 0,
+                            backgroundColor: '#6366f1',
+                          }}
+                        />
+                        <div
+                          className="w-2.5 rounded-t-[4px]"
+                          style={{
+                            height: `${(m.received / maxFlow) * 88}px`,
+                            minHeight: m.received ? 2 : 0,
+                            backgroundColor: '#059669',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-1.5 flex justify-between gap-2">
+                  {flowMonths.map((m) => (
+                    <span
+                      key={m.key}
+                      className="flex-1 text-center text-[11px] text-zinc-500 dark:text-zinc-400"
+                    >
+                      {m.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
+                  <LegendKey fill="#6366f1" label="Sent" count={totalFlowSent} />
+                  <LegendKey fill="#059669" label="Received" count={totalFlowReceived} />
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Fund status — one segmented part-to-whole bar; 2px gaps in the
+              surface color separate the segments, never a border. */}
+          <section className={sectionCard}>
+            <CardHeader title="Fund status" href="/deals" linkLabel="All deals" />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Where you stand on each deal in your pipeline.
+            </p>
+
+            {deals.length === 0 ? (
+              <CardEmpty
+                body="No deals in your pipeline yet."
+                href="/deals#add-deal"
+                cta="Add your first deal"
+              />
+            ) : (
+              <div className="mt-5">
+                <div className="flex h-5 w-full gap-[2px] overflow-hidden rounded-[4px]">
+                  {fundSegments.map((s) => (
+                    <div
+                      key={s.value}
+                      title={`${s.label}: ${s.count} ${s.count === 1 ? 'deal' : 'deals'}`}
+                      style={{
+                        width: `${(s.count / deals.length) * 100}%`,
+                        backgroundColor: s.fill,
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
+                  {fundSegments.map((s) => (
+                    <LegendKey key={s.value} fill={s.fill} label={s.label} count={s.count} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Network warmth — a single-series histogram, so no legend; the
+              count sits on each column's cap and the level below the baseline. */}
+          <section className={sectionCard}>
+            <CardHeader title="Network warmth" href="/co-investors" linkLabel="All co-investors" />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Co-investors by warmth, 1 (cold) to 5 (close).
+            </p>
+
+            {investors.length === 0 ? (
+              <CardEmpty
+                body="Add co-investors to see how warm your network runs."
+                href="/co-investors"
+                cta="Add a co-investor"
+              />
+            ) : (
+              <div className="mt-5">
+                <div className="flex items-end justify-between gap-2 border-b border-zinc-950/[.08] dark:border-white/[.08]">
+                  {warmthRows.map((r) => (
+                    <div
+                      key={r.key}
+                      className="flex flex-1 flex-col items-center gap-1"
+                      title={`Warmth ${r.label}: ${r.count} ${r.count === 1 ? 'co-investor' : 'co-investors'}`}
+                    >
+                      {/* Screen readers get the count and its level as one
+                          phrase; the visible count and the label row below
+                          are the sighted version of the same pairing. */}
+                      <span className="sr-only">
+                        Warmth {r.key === 'none' ? 'not set' : r.label}: {r.count}{' '}
+                        {r.count === 1 ? 'co-investor' : 'co-investors'}
+                      </span>
+                      <span
+                        aria-hidden
+                        className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400"
+                      >
+                        {r.count}
+                      </span>
+                      <div
+                        aria-hidden
+                        className="w-5 rounded-t-[4px]"
+                        style={{
+                          height: `${(r.count / maxWarmth) * 64}px`,
+                          minHeight: r.count ? 2 : 0,
+                          backgroundColor: r.fill,
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div aria-hidden className="mt-1.5 flex justify-between gap-2">
+                  {warmthRows.map((r) => (
+                    <span
+                      key={r.key}
+                      className="flex-1 text-center text-[11px] text-zinc-500 dark:text-zinc-400"
+                    >
+                      {r.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Two-thirds / one-third split: the wide column carries the things
@@ -545,6 +781,21 @@ function CardHeader({
         {linkLabel} &rarr;
       </Link>
     </div>
+  )
+}
+
+// A legend entry: a small color swatch, the series name, and the actual
+// number — so identity never rides on color alone, and the count is visible
+// without hovering anything.
+function LegendKey({ fill, label, count }: { fill: string; label: string; count?: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+      <span aria-hidden className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: fill }} />
+      {label}
+      {typeof count === 'number' && (
+        <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300">{count}</span>
+      )}
+    </span>
   )
 }
 
