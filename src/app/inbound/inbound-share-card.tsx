@@ -27,7 +27,15 @@ function formatDate(iso: string): string {
   })
 }
 
-export default function InboundShareCard({ share }: { share: InAppShare }) {
+export default function InboundShareCard({
+  share,
+  alreadyAdded,
+}: {
+  share: InAppShare
+  // True when a deal in the viewer's pipeline already points back at this
+  // share (deals.promoted_from_share_id) — shown as "Added ✓" from the start.
+  alreadyAdded: boolean
+}) {
   const deal = share.deal
 
   const money = (key: ShareableFieldKey) =>
@@ -55,7 +63,7 @@ export default function InboundShareCard({ share }: { share: InAppShare }) {
 
       <DealFields deal={deal} money={money} />
 
-      <PromoteShareButton shareId={share.share_id} />
+      <PromoteShareButton shareId={share.share_id} alreadyAdded={alreadyAdded} />
     </li>
   )
 }

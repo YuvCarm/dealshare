@@ -48,6 +48,18 @@ export default async function InboundPage() {
 
   const hasCoInvestors = (coInvestors?.length ?? 0) > 0
 
+  // 4. Which shares did I already promote? Promoted deals remember their
+  //    share id (migration 0011), so "Added ✓" survives reloads instead of
+  //    living only in the button's in-page state. RLS scopes this to my own
+  //    deals. Before 0011 runs the column doesn't exist and this errors —
+  //    treated as "none known", which just shows the buttons as before.
+  const { data: promotedRows } = await supabase
+    .from('deals')
+    .select('promoted_from_share_id')
+    .not('promoted_from_share_id', 'is', null)
+    .returns<{ promoted_from_share_id: string }[]>()
+  const promotedShareIds = new Set((promotedRows ?? []).map((r) => r.promoted_from_share_id))
+
   // Turn the flat rolodex into an email → co-investor lookup, so an in-app
   // share from jane@acme.vc can show "Jane (Acme Ventures)" when she's a
   // contact of yours, and just her email when she isn't.
@@ -75,9 +87,9 @@ export default async function InboundPage() {
         <section>
           <h1 className="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Shared with you
-            {!sharesMigrationPending && (
-              <span className={countCls}>({inAppShares.length})</span>
-            )}
+            {/* Only claim a count when the load actually succeeded — a failed
+                load must not read as "you have zero shares". */}
+            {!sharesError && <span className={countCls}>({inAppShares.length})</span>}
           </h1>
           <p className="mt-1 mb-5 text-sm text-zinc-500 dark:text-zinc-400">
             Deals co-investors shared with you <strong>inside DealShare</strong> — live, and
@@ -126,7 +138,11 @@ export default async function InboundPage() {
                   </div>
                   <ul className="mt-3 flex flex-col gap-3">
                     {groupShares.map((share) => (
-                      <InboundShareCard key={share.share_id} share={share} />
+                      <InboundShareCard
+                        key={share.share_id}
+                        share={share}
+                        alreadyAdded={promotedShareIds.has(share.share_id)}
+                      />
                     ))}
                   </ul>
                 </div>

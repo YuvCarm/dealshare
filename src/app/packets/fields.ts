@@ -9,6 +9,11 @@
 //
 // Note: `founder_consent` is deliberately NOT here — it's internal bookkeeping
 // about the founder, never something to show a co-investor.
+//
+// This list has a SQL twin: shareable_field_keys() in migration 0011. The
+// database filters every share-reading function against it, so a field added
+// here won't actually reach recipients until it's added there too (edit the
+// array in 0011 and re-run that file).
 export const SHAREABLE_FIELDS = [
   { key: 'company_name', label: 'Company name', defaultOn: true },
   { key: 'one_liner', label: 'One-liner', defaultOn: true },

@@ -8,13 +8,20 @@ import { promoteShareToPipeline, type ActionState } from './actions'
 const initialState: ActionState = { ok: false }
 
 // "Add to my pipeline" for a LIVE in-app share. On success the button becomes
-// a confirmation linking straight to the tab the copy landed under — which
-// also stops accidental double-adds. (Unlike the manual card, this card has no
-// edit/delete faces to toggle through, so state.ok alone is enough here.)
-export default function PromoteShareButton({ shareId }: { shareId: string }) {
+// a confirmation linking straight to the tab the copy landed under.
+// `alreadyAdded` is the durable version of that state: the server derives it
+// from deals.promoted_from_share_id, so it survives reloads — and the unique
+// index behind it (migration 0011) refuses double-adds even from a stale tab.
+export default function PromoteShareButton({
+  shareId,
+  alreadyAdded,
+}: {
+  shareId: string
+  alreadyAdded: boolean
+}) {
   const [state, action, pending] = useActionState(promoteShareToPipeline, initialState)
 
-  if (state.ok) {
+  if (alreadyAdded || state.ok) {
     return (
       <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-400">
         Added ✓{' '}

@@ -208,12 +208,12 @@ export async function addToPipeline(
   return { ok: true }
 }
 
-// The one setup step promotion needs: migration 0010 adds the `source` column.
-// Until it runs, the insert fails with an unknown-column error — point at the
-// fix instead of echoing Postgres jargon.
+// The setup promotion needs: migration 0010 adds the `source` column and 0011
+// adds `promoted_from_share_id`. Until they run, the insert fails with an
+// unknown-column error — point at the fix instead of echoing Postgres jargon.
 function friendlySourceError(error: { code?: string; message: string }): string {
   if (error.code === 'PGRST204' || error.code === '42703') {
-    return 'The database needs one small upgrade first: run supabase/migrations/0010_deal_source.sql in Supabase → SQL Editor, then try again.'
+    return 'The database needs one small upgrade first: run supabase/migrations/0010_deal_source.sql and 0011_share_hardening.sql in Supabase → SQL Editor, then try again.'
   }
   return error.message
 }
@@ -297,12 +297,24 @@ export async function promoteShareToPipeline(
     deck_url: str(deal.deck_url),
     notes,
     source: 'promoted_from_inbound',
+    // Records which share this copy came from. The unique index from
+    // migration 0011 rides on it: a second promotion of the same share is
+    // refused by the database, however many tabs or reloads later.
+    promoted_from_share_id: share.share_id,
   })
   if (error) {
+    // Unique index: this share was already promoted (maybe in another tab).
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        error: 'This share is already in your pipeline — check the "Promoted from inbound" tab on Deals.',
+      }
+    }
     return { ok: false, error: friendlySourceError(error) }
   }
 
   revalidatePath('/deals')
+  revalidatePath('/inbound')
   return { ok: true }
 }
 
