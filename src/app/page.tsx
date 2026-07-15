@@ -37,8 +37,8 @@ export default async function Home() {
               .
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/deals" className={btnPrimaryLg}>
-                Go to your deals
+              <Link href="/dashboard" className={btnPrimaryLg}>
+                Go to your dashboard
               </Link>
               <form action={signOut}>
                 <button type="submit" className={btnSecondaryLg}>

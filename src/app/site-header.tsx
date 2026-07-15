@@ -2,16 +2,17 @@ import Link from 'next/link'
 import { signOut } from '@/app/auth/actions'
 import { btnSecondarySm } from '@/app/ui'
 
-// The shared top bar. /deals, /co-investors, /packets, /shared, and /inbound
-// render this so navigation and sign-out look and behave identically on each
-// page. It's sticky with a frosted-glass blur, so content scrolls underneath
-// it — anchor targets on those pages use scroll-mt-24 to land below it.
+// The shared top bar. /dashboard, /deals, /co-investors, /packets, /shared,
+// and /inbound render this so navigation and sign-out look and behave
+// identically on each page. It's sticky with a frosted-glass blur, so content
+// scrolls underneath it — anchor targets on those pages use scroll-mt-24 to
+// land below it.
 export default function SiteHeader({
   email,
   active,
 }: {
   email?: string
-  active: 'deals' | 'co-investors' | 'packets' | 'shared' | 'inbound'
+  active: 'dashboard' | 'deals' | 'co-investors' | 'packets' | 'shared' | 'inbound'
 }) {
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between border-b border-zinc-950/[.06] bg-white/75 px-6 py-3 backdrop-blur-xl dark:border-white/[.08] dark:bg-zinc-950/75">
@@ -24,6 +25,9 @@ export default function SiteHeader({
           DealShare
         </Link>
         <nav className="flex items-center gap-1 text-sm">
+          <NavLink href="/dashboard" active={active === 'dashboard'}>
+            Dashboard
+          </NavLink>
           <NavLink href="/deals" active={active === 'deals'}>
             Deals
           </NavLink>

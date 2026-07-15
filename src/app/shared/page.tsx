@@ -43,10 +43,12 @@ export default async function SharedPage() {
 
   // RLS alone isn't enough here: its policies show me shares I CREATED and
   // shares addressed TO me. This page is strictly "by me", so filter on
-  // from_user_id explicitly.
+  // from_user_id explicitly. The deals embed must name its foreign key
+  // (!deal_id): migration 0011 added a second deals↔deal_shares relationship
+  // (deals.promoted_from_share_id), so a bare `deals` is ambiguous.
   const { data: shares, error } = await supabase
     .from('deal_shares')
-    .select('id, created_at, to_email, status, included_fields, deals ( company_name )')
+    .select('id, created_at, to_email, status, included_fields, deals!deal_id ( company_name )')
     .eq('from_user_id', user.id)
     .order('created_at', { ascending: false })
     .returns<ShareRow[]>()
