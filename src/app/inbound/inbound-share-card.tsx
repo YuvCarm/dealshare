@@ -1,6 +1,7 @@
 import Badge from '@/app/badge'
 import { inlineLink, itemCard, moneyCls } from '@/app/ui'
 import { SHAREABLE_FIELDS, type ShareableFieldKey } from '@/app/packets/fields'
+import PromoteShareButton from './promote-share-button'
 import type { InAppShare, InAppSharedDeal } from './types'
 
 // One deal a co-investor shared with you INSIDE DealShare (a live deal_shares
@@ -53,12 +54,13 @@ export default function InboundShareCard({ share }: { share: InAppShare }) {
       </p>
 
       <DealFields deal={deal} money={money} />
+
+      <PromoteShareButton shareId={share.share_id} />
     </li>
   )
 }
 
-// The trimmed deal fields. Kept separate so a later step can add an
-// "Add to my pipeline" action alongside them without touching this layout.
+// The trimmed deal fields, kept separate from the card chrome above.
 function DealFields({
   deal,
   money,
