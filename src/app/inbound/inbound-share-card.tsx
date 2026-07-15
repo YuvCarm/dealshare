@@ -1,6 +1,7 @@
 import Badge from '@/app/badge'
 import { inlineLink, itemCard, moneyCls } from '@/app/ui'
 import { SHAREABLE_FIELDS, type ShareableFieldKey } from '@/app/packets/fields'
+import HideShareButton from './hide-share-button'
 import PromoteShareButton from './promote-share-button'
 import type { InAppShare, InAppSharedDeal } from './types'
 
@@ -63,7 +64,13 @@ export default function InboundShareCard({
 
       <DealFields deal={deal} money={money} />
 
-      <PromoteShareButton shareId={share.share_id} alreadyAdded={alreadyAdded} />
+      {/* Card footer: the promote action on the left, and a quiet "Hide" on
+          the right — the recipient's way to dismiss a share they never asked
+          for (the sharer keeps their share row; see hideInboundShare). */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <PromoteShareButton shareId={share.share_id} alreadyAdded={alreadyAdded} />
+        <HideShareButton shareId={share.share_id} />
+      </div>
     </li>
   )
 }

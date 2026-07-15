@@ -318,6 +318,62 @@ export async function promoteShareToPipeline(
   return { ok: true }
 }
 
+// Hide a live in-app share from YOUR /inbound page. Only the sharer can
+// revoke a share (deal_shares is read-only for recipients), so this instead
+// writes a row into recipient_share_prefs — "don't show me this one again" —
+// and inbound_deal_shares() (migration 0012) filters it out inside Postgres.
+// One-sided and private: the sharer isn't notified and their share row is
+// untouched.
+export async function hideInboundShare(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, error: 'You must be signed in to hide a share.' }
+  }
+
+  const shareId = text(formData.get('share_id'))
+  if (!shareId) {
+    return { ok: false, error: 'Missing share id.' }
+  }
+
+  // Upsert so a double-click (or a second tab) lands on the existing row
+  // instead of a duplicate-key error. RLS does the real gatekeeping: the
+  // row must carry YOUR user id, and the share must be active and addressed
+  // to you — a forged share_id is simply refused by the database.
+  const { error } = await supabase.from('recipient_share_prefs').upsert(
+    { recipient_user_id: user.id, share_id: shareId },
+    { onConflict: 'recipient_user_id,share_id', ignoreDuplicates: true }
+  )
+  if (error) {
+    // The table doesn't exist yet: migration 0012 hasn't been run.
+    if (error.code === 'PGRST205' || error.code === '42P01') {
+      return {
+        ok: false,
+        error:
+          'The database needs one small upgrade first: run supabase/migrations/0012_recipient_hide_shares.sql in Supabase → SQL Editor, then try again.',
+      }
+    }
+    // RLS refused (42501) or the share row is gone (23503): either way the
+    // share is no longer live for you — revoked or deleted since page load.
+    if (error.code === '42501' || error.code === '23503') {
+      return {
+        ok: false,
+        error: 'That share could not be found — it may have been revoked by the sharer.',
+      }
+    }
+    return { ok: false, error: error.message }
+  }
+
+  revalidatePath('/inbound')
+  return { ok: true }
+}
+
 export async function deleteInboundDeal(
   _prevState: ActionState,
   formData: FormData
