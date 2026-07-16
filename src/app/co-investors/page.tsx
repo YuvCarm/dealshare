@@ -5,6 +5,8 @@ import EmptyState from '@/app/empty-state'
 import { countCls, errorBox, sectionCard } from '@/app/ui'
 import AddCoInvestorForm from './add-co-investor-form'
 import CoInvestorCard from './co-investor-card'
+import { autoWarmth } from './auto-warmth'
+import { fetchReciprocity } from './reciprocity'
 import type { CoInvestor } from './types'
 
 export default async function CoInvestorsPage() {
@@ -15,12 +17,17 @@ export default async function CoInvestorsPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Thanks to RLS, this returns ONLY this user's co-investors — no filtering here.
-  const { data: investors, error } = await supabase
-    .from('co_investors')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .returns<CoInvestor[]>()
+  // Two reads fired together: the rolodex itself, and the sent/received deal
+  // counts that drive each person's automatic warmth. Thanks to RLS, the
+  // first returns ONLY this user's co-investors — no filtering here.
+  const [{ data: investors, error }, reciprocity] = await Promise.all([
+    supabase
+      .from('co_investors')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .returns<CoInvestor[]>(),
+    fetchReciprocity(supabase, user.id),
+  ])
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
@@ -50,6 +57,16 @@ export default async function CoInvestorsPage() {
             </p>
           )}
 
+          {/* Warmth degrades gracefully: if the counts couldn't load, this
+              banner shows, overridden investors keep their dots, and the rest
+              render empty — never a level computed from partial data
+              (fetchReciprocity is all-or-nothing about its five queries). */}
+          {reciprocity.errors.length > 0 && (
+            <p className={`mt-4 ${errorBox}`}>
+              Couldn&apos;t compute warmth: {reciprocity.errors.join(' · ')}
+            </p>
+          )}
+
           {investors && investors.length === 0 && (
             <EmptyState
               heading="No co-investors yet"
@@ -60,9 +77,16 @@ export default async function CoInvestorsPage() {
           )}
 
           <ul className="mt-4 flex flex-col gap-3">
-            {investors?.map((investor) => (
-              <CoInvestorCard key={investor.id} investor={investor} />
-            ))}
+            {investors?.map((investor) => {
+              const counts = reciprocity.counts.get(investor.id)
+              return (
+                <CoInvestorCard
+                  key={investor.id}
+                  investor={investor}
+                  autoWarmth={autoWarmth(counts?.sent ?? 0, counts?.received ?? 0)}
+                />
+              )
+            })}
           </ul>
         </section>
       </main>

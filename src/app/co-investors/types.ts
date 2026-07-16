@@ -11,6 +11,8 @@ export type CoInvestor = {
   thesis_geographies: string[] | null
   check_size_min: number | null
   check_size_max: number | null
+  // Manual warmth OVERRIDE (1–5). Null means "automatic": computed from the
+  // deal-flow ratio — see auto-warmth.ts.
   warmth: number | null
   notes: string | null
 }

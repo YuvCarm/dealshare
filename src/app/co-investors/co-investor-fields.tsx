@@ -24,7 +24,17 @@ function Field({
 // The full set of co-investor inputs. Passing `values` pre-fills them (edit
 // mode); leaving it out gives an empty form (add mode). Because both the add
 // and edit forms render this, they can never fall out of sync.
-export default function CoInvestorFields({ values }: { values?: CoInvestor }) {
+//
+// `autoWarmth` is the computed warmth for this person (null for a brand-new
+// co-investor — no deal history yet), shown by the picker as the value a
+// manual override would replace.
+export default function CoInvestorFields({
+  values,
+  autoWarmth = null,
+}: {
+  values?: CoInvestor
+  autoWarmth?: number | null
+}) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <Field label="Name *">
@@ -104,9 +114,16 @@ export default function CoInvestorFields({ values }: { values?: CoInvestor }) {
         />
       </Field>
 
-      <Field label="Warmth" className="sm:col-span-2">
-        <WarmthInput defaultValue={values?.warmth ?? null} />
-      </Field>
+      {/* Deliberately NOT a <label> (unlike Field): a label forwards clicks on
+          its text to its first button, so clicking "Warmth" or the hint below
+          would silently set a 1/5 manual override. A plain div keeps them inert. */}
+      <div className="flex flex-col gap-1 sm:col-span-2">
+        <span className={fieldLabel}>Warmth</span>
+        <WarmthInput defaultValue={values?.warmth ?? null} autoValue={autoWarmth} />
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          Set automatically from your deal flow with them — pick dots only to override.
+        </span>
+      </div>
 
       <Field label="Notes" className="sm:col-span-2">
         <textarea
