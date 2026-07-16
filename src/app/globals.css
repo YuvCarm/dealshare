@@ -3,15 +3,28 @@
 /*
  * DealShare theme — "Graphite Signal".
  * Near-monochrome zinc, one electric indigo accent, semantic status color.
- * The app is LOCKED to dark mode: the `dark` class sits permanently on
- * <html> (see layout.tsx), and the variant below makes every `dark:` utility
- * follow that class instead of the visitor's OS setting.
+ * The theme follows the `dark` class on <html>: the variant below makes every
+ * `dark:` utility, and the CSS variables here, switch on that class rather than
+ * the visitor's OS setting. The theme toggle (see theme-toggle.tsx) flips the
+ * class and remembers the choice; dark is the default (set in layout.tsx).
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Light theme — the default when the `dark` class is absent. Canvas is a soft
+ * off-white and cards are pure white, so the card shadow lifts them above it. */
 :root {
-  color-scheme: dark; /* native selects, scrollbars, autofill render dark too */
+  color-scheme: light; /* native selects, scrollbars, autofill render light too */
+
+  --background: #fafafa; /* zinc-50 — a hair off pure white */
+  --surface: #ffffff;    /* cards sit one step above the canvas */
+  --foreground: #09090b; /* primary text — zinc-950, never pure black */
+  --accent: #4f46e5;     /* indigo-600 — darker so link text stays readable on white */
+}
+
+/* Dark theme — the original "Graphite Signal" values, now scoped to the class. */
+.dark {
+  color-scheme: dark;
 
   --background: #09090b; /* zinc-950 — never pure black */
   --surface: #111113;    /* cards sit one step above the canvas */

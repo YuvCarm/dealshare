@@ -19,6 +19,7 @@ const secondaryBase =
 export const btnSecondary = `h-9 px-3.5 ${secondaryBase}` // standalone
 export const btnSecondarySm = `h-8 px-3 ${secondaryBase}` // header + inside list cards
 export const btnSecondaryLg = `h-11 px-5 ${secondaryBase}` // next to a large primary
+export const btnSecondaryIcon = `h-8 w-8 ${secondaryBase}` // square, icon-only (e.g. theme toggle)
 
 // Danger: quiet red outline at rest; solid red only at the "are you sure" step.
 export const btnDanger =
