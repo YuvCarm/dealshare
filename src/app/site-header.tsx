@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { signOut } from '@/app/auth/actions'
 import { btnSecondarySm } from '@/app/ui'
+import ThemeToggle from '@/app/theme-toggle'
 
 // The shared top bar. /dashboard, /deals, /co-investors, /packets, /shared,
 // and /inbound render this so navigation and sign-out look and behave
@@ -52,6 +53,7 @@ export default function SiteHeader({
             {email}
           </span>
         )}
+        <ThemeToggle />
         <form action={signOut}>
           <button className={btnSecondarySm}>Sign out</button>
         </form>
