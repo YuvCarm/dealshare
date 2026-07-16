@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SiteHeader from '@/app/site-header'
 import { WarmthDots } from '@/app/co-investors/warmth'
+import { autoWarmth } from '@/app/co-investors/auto-warmth'
+import { aggregateReciprocity } from '@/app/co-investors/reciprocity'
 import { countCls, errorBox, itemCard, sectionCard } from '@/app/ui'
 import type { InAppShare } from '@/app/inbound/types'
 
@@ -158,10 +160,10 @@ export default async function DashboardPage() {
 
   // ---- Reciprocity ---------------------------------------------------------
   // Sharers arrive as bare emails, so the rolodex doubles as an email → name
-  // lookup (same trick as /inbound and /shared). Unlike those pages this map
-  // feeds COUNTS, not just display names, so ties must be deterministic: if
-  // two rolodex entries share an email, the oldest entry (query is ordered by
-  // created_at) owns it on every load, instead of flip-flopping.
+  // lookup for the activity feed (same trick as /inbound and /shared). The
+  // COUNTS come from aggregateReciprocity — shared with the co-investor
+  // pages, so every surface agrees — which applies its own deterministic
+  // oldest-entry-wins tie-break when two rolodex entries share an email.
   const investorByEmail = new Map<string, InvestorRow>()
   for (const investor of investors) {
     if (!investor.email) continue
@@ -169,44 +171,23 @@ export default async function DashboardPage() {
     if (!investorByEmail.has(key)) investorByEmail.set(key, investor)
   }
 
-  // Sent = distinct deals that reached this co-investor by either route: a
-  // packet addressed to them, or a direct share to their email. The Set
-  // dedupes a deal that traveled both ways, matching how the co-investor
-  // profile counts packets (distinct deals, not rows).
-  const sentDealsByInvestor = new Map<string, Set<string>>()
-  const addSent = (investorId: string, dealId: string) => {
-    const set = sentDealsByInvestor.get(investorId) ?? new Set<string>()
-    set.add(dealId)
-    sentDealsByInvestor.set(investorId, set)
-  }
-  for (const packet of packets) {
-    if (!packet.co_investor_id) continue
-    for (const pd of packet.packet_deals) addSent(packet.co_investor_id, pd.deal_id)
-  }
-  for (const share of sentShares) {
-    const investor = investorByEmail.get(share.to_email)
-    if (investor) addSent(investor.id, share.deal_id)
-  }
+  // Both directions of deal flow per co-investor, counted once for the table
+  // and for automatic warmth. The investors query is ordered oldest-first,
+  // which is exactly what the aggregator's tie-break expects.
+  const flowCounts = aggregateReciprocity(investors, packets, sentShares, manualInbound, inboundShares)
 
-  // Received = manually-logged inbound rows from them, plus live in-app shares
-  // from their email. Two different record kinds, so a plain sum — there's no
-  // shared deal id to dedupe on.
-  const receivedByInvestor = new Map<string, number>()
-  const addReceived = (investorId: string) =>
-    receivedByInvestor.set(investorId, (receivedByInvestor.get(investorId) ?? 0) + 1)
-  for (const row of manualInbound) {
-    if (row.co_investor_id) addReceived(row.co_investor_id)
-  }
-  for (const share of inboundShares) {
-    const investor = investorByEmail.get(share.from_email)
-    if (investor) addReceived(investor.id)
+  // Effective warmth: the manual override when set, otherwise computed from
+  // the deal-flow ratio (null = no history to go on yet).
+  const effectiveWarmth = (investor: InvestorRow): number | null => {
+    const counts = flowCounts.get(investor.id)
+    return investor.warmth ?? autoWarmth(counts?.sent ?? 0, counts?.received ?? 0)
   }
 
   const reciprocity = investors
     .map((investor) => ({
       investor,
-      sent: sentDealsByInvestor.get(investor.id)?.size ?? 0,
-      received: receivedByInvestor.get(investor.id) ?? 0,
+      sent: flowCounts.get(investor.id)?.sent ?? 0,
+      received: flowCounts.get(investor.id)?.received ?? 0,
     }))
     .filter((row) => row.sent + row.received > 0)
     .sort(
@@ -350,15 +331,16 @@ export default async function DashboardPage() {
     ...(unjudged > 0 ? [{ value: 'none', label: 'No status', fill: '#52525b', count: unjudged }] : []),
   ].filter((s) => s.count > 0)
 
-  // Network warmth histogram: co-investors at each warmth level, in the same
-  // amber that WarmthDots uses everywhere, plus a gray bin for "not set".
+  // Network warmth histogram: co-investors at each EFFECTIVE warmth level —
+  // manual override or the computed ratio — in the same amber that WarmthDots
+  // uses everywhere, plus a gray bin for "no deal history yet".
   const warmthBins = [1, 2, 3, 4, 5].map((level) => ({
     key: String(level),
     label: String(level),
     fill: '#f59e0b',
-    count: investors.filter((i) => i.warmth === level).length,
+    count: investors.filter((i) => effectiveWarmth(i) === level).length,
   }))
-  const warmthUnset = investors.filter((i) => i.warmth == null).length
+  const warmthUnset = investors.filter((i) => effectiveWarmth(i) == null).length
   const warmthRows = [
     ...warmthBins,
     ...(warmthUnset > 0 ? [{ key: 'none', label: '—', fill: '#52525b', count: warmthUnset }] : []),
@@ -542,7 +524,7 @@ export default async function DashboardPage() {
                           phrase; the visible count and the label row below
                           are the sighted version of the same pairing. */}
                       <span className="sr-only">
-                        Warmth {r.key === 'none' ? 'not set' : r.label}: {r.count}{' '}
+                        Warmth {r.key === 'none' ? 'no deal history yet' : r.label}: {r.count}{' '}
                         {r.count === 1 ? 'co-investor' : 'co-investors'}
                       </span>
                       <span
@@ -635,7 +617,10 @@ export default async function DashboardPage() {
                           )}
                         </td>
                         <td className="py-2.5 pr-4">
-                          <WarmthDots value={investor.warmth} />
+                          <WarmthDots
+                            value={effectiveWarmth(investor)}
+                            auto={investor.warmth == null}
+                          />
                         </td>
                         <td className="py-2.5 text-right font-mono text-[13px] tabular-nums text-zinc-800 dark:text-zinc-200">
                           {sent}

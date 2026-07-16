@@ -8,6 +8,8 @@ import CopyLinkButton from '@/app/packets/copy-link-button'
 import StatusChip from '@/app/packets/status-chip'
 import { statusLabel } from '@/app/inbound/types'
 import { WarmthDots } from '../warmth'
+import { autoWarmth } from '../auto-warmth'
+import { fetchReciprocity } from '../reciprocity'
 import type { CoInvestor } from '../types'
 
 // One packet sent to this co-investor, with the names of the deals inside it.
@@ -17,7 +19,7 @@ type PacketForInvestor = {
   created_at: string
   link_token: string
   revoked_at?: string | null
-  packet_deals: { deal_id: string; deals: { company_name: string } | null }[]
+  packet_deals: { deals: { company_name: string } | null }[]
 }
 
 // One inbound deal they shared with you (no join needed — we're on their page).
@@ -86,6 +88,13 @@ export default async function CoInvestorProfilePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // The shared sent/received counter (reciprocity.ts) — unlike this page's own
+  // queries below it also counts direct shares and in-app shares, so the
+  // numbers here match the dashboard and drive automatic warmth. Fired first,
+  // WITHOUT await, so it overlaps the three queries below (it needs none of
+  // their results); awaited once they're done.
+  const reciprocityPromise = fetchReciprocity(supabase, user.id)
+
   // The co-investor themselves. RLS means you can only ever load your own.
   const { data: investor, error: investorError } = await supabase
     .from('co_investors')
@@ -101,7 +110,7 @@ export default async function CoInvestorProfilePage({
   // Everything you've sent them, newest first, with each packet's deal names.
   const { data: packets, error: packetsError } = await supabase
     .from('share_packets')
-    .select('*, packet_deals ( deal_id, deals ( company_name ) )')
+    .select('*, packet_deals ( deals ( company_name ) )')
     .eq('co_investor_id', id)
     .order('created_at', { ascending: false })
     .returns<PacketForInvestor[]>()
@@ -114,6 +123,11 @@ export default async function CoInvestorProfilePage({
     .order('created_at', { ascending: false })
     .returns<InboundFromInvestor[]>()
 
+  const reciprocity = await reciprocityPromise
+
+  // Only the page's OWN queries are fatal. A failed reciprocity count just
+  // hides the numbers line behind a banner further down — the profile itself
+  // (bio, packets, inbound) still renders, same as the list page degrades.
   const loadError = investorError || packetsError || inboundError
   if (loadError || !investor) {
     return (
@@ -129,16 +143,13 @@ export default async function CoInvestorProfilePage({
   }
 
   // ----- The reciprocity numbers -----
-  // "You → them": how many distinct deals you've shared (the same deal in two
-  // packets counts once), and when the latest packet went out.
-  const sharedDealIds = new Set(
-    (packets ?? []).flatMap((p) => p.packet_deals.map((pd) => pd.deal_id))
-  )
-  const lastSharedAt = packets?.[0]?.created_at ?? null
-
-  // "Them → you": how many deals they've sent you, and when the latest arrived.
-  const receivedCount = inbound?.length ?? 0
-  const lastReceivedAt = inbound?.[0]?.created_at ?? null
+  // "You → them": distinct deals that reached them (packet or direct share).
+  // "Them → you": deals they sent you (logged inbound or in-app share).
+  const counts = reciprocity.counts.get(investor.id)
+  const sentCount = counts?.sent ?? 0
+  const receivedCount = counts?.received ?? 0
+  const lastSharedAt = counts?.lastSentAt ?? null
+  const lastReceivedAt = counts?.lastReceivedAt ?? null
 
   const stages = investor.thesis_stages?.join(', ')
   const sectors = investor.thesis_sectors?.join(', ')
@@ -168,7 +179,12 @@ export default async function CoInvestorProfilePage({
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">{investor.fund_name}</p>
               )}
             </div>
-            <WarmthDots value={investor.warmth} />
+            <WarmthDots
+              value={investor.warmth ?? autoWarmth(sentCount, receivedCount)}
+              // If the counts failed to load, empty dots mean "unknown", not
+              // "no history" — so don't claim automatic in the tooltip.
+              auto={investor.warmth == null && reciprocity.errors.length === 0}
+            />
           </div>
 
           {(stages || sectors || geos || range) && (
@@ -199,23 +215,37 @@ export default async function CoInvestorProfilePage({
           )}
 
           {/* ----- Reciprocity: who owes whom a deal ----- */}
-          <p className="mt-4 border-t border-zinc-950/[.06] pt-4 text-sm text-zinc-600 dark:border-white/[.08] dark:text-zinc-400">
-            <strong className="font-medium text-zinc-950 dark:text-zinc-50">You → them:</strong>{' '}
-            <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
-              {sharedDealIds.size}
-            </span>{' '}
-            {sharedDealIds.size === 1 ? 'deal' : 'deals'}
-            {lastSharedAt && ` (last: ${monthYear(lastSharedAt)})`}
-            <span className="mx-2">·</span>
-            <strong className="font-medium text-zinc-950 dark:text-zinc-50">
-              Them → you:
-            </strong>{' '}
-            <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
-              {receivedCount}
-            </span>{' '}
-            {receivedCount === 1 ? 'deal' : 'deals'}
-            {lastReceivedAt && ` (last: ${monthYear(lastReceivedAt)})`}
-          </p>
+          {reciprocity.errors.length > 0 ? (
+            <p className={`mt-4 ${errorBox}`}>
+              Couldn&apos;t count deal flow (warmth shows as unknown):{' '}
+              {reciprocity.errors.join(' · ')}
+            </p>
+          ) : (
+            <p className="mt-4 border-t border-zinc-950/[.06] pt-4 text-sm text-zinc-600 dark:border-white/[.08] dark:text-zinc-400">
+              <strong className="font-medium text-zinc-950 dark:text-zinc-50">You → them:</strong>{' '}
+              <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+                {sentCount}
+              </span>{' '}
+              {sentCount === 1 ? 'deal' : 'deals'}
+              {lastSharedAt && ` (last: ${monthYear(lastSharedAt)})`}
+              <span className="mx-2">·</span>
+              <strong className="font-medium text-zinc-950 dark:text-zinc-50">
+                Them → you:
+              </strong>{' '}
+              <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+                {receivedCount}
+              </span>{' '}
+              {receivedCount === 1 ? 'deal' : 'deals'}
+              {lastReceivedAt && ` (last: ${monthYear(lastReceivedAt)})`}
+              {/* These totals count every route a deal traveled (packets,
+                  direct shares, in-app shares), so they can exceed the two
+                  lists below, which only show packets and logged deals. */}
+              <span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400">
+                Counts all deal flow — packets, direct shares, and in-app shares — and sets
+                warmth automatically.
+              </span>
+            </p>
+          )}
         </section>
 
         {/* ----- Shared with them ----- */}

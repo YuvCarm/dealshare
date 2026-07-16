@@ -42,12 +42,21 @@ function checkRange(min: number | null, max: number | null): string | null {
   return null
 }
 
-export default function CoInvestorCard({ investor }: { investor: CoInvestor }) {
+// `autoWarmth` is this person's computed warmth (from the deal-flow ratio —
+// the server page works it out); `investor.warmth` is the manual override.
+// Whichever applies is what the dots show.
+export default function CoInvestorCard({
+  investor,
+  autoWarmth,
+}: {
+  investor: CoInvestor
+  autoWarmth: number | null
+}) {
   // Which face of the card is showing right now.
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm'>('view')
 
   if (mode === 'edit') {
-    return <EditCard investor={investor} onClose={() => setMode('view')} />
+    return <EditCard investor={investor} autoWarmth={autoWarmth} onClose={() => setMode('view')} />
   }
 
   const stages = investor.thesis_stages?.join(', ')
@@ -68,7 +77,7 @@ export default function CoInvestorCard({ investor }: { investor: CoInvestor }) {
             <p className="text-sm text-zinc-500 dark:text-zinc-400">{investor.fund_name}</p>
           )}
         </div>
-        <WarmthDots value={investor.warmth} />
+        <WarmthDots value={investor.warmth ?? autoWarmth} auto={investor.warmth == null} />
       </div>
 
       {(stages || sectors || geos || range) && (
@@ -138,7 +147,15 @@ function DeleteConfirm({ id, onCancel }: { id: string; onCancel: () => void }) {
 
 // The edit face: the same fields as "add", pre-filled, plus a hidden id so the
 // server knows which row to update. On success we flip back to the view.
-function EditCard({ investor, onClose }: { investor: CoInvestor; onClose: () => void }) {
+function EditCard({
+  investor,
+  autoWarmth,
+  onClose,
+}: {
+  investor: CoInvestor
+  autoWarmth: number | null
+  onClose: () => void
+}) {
   const [state, action, pending] = useActionState(updateCoInvestor, initialState)
 
   useEffect(() => {
@@ -149,7 +166,7 @@ function EditCard({ investor, onClose }: { investor: CoInvestor; onClose: () => 
     <li className={itemCard}>
       <form action={action} className="flex flex-col gap-4">
         <input type="hidden" name="id" value={investor.id} />
-        <CoInvestorFields values={investor} />
+        <CoInvestorFields values={investor} autoWarmth={autoWarmth} />
         <div className="flex items-center gap-3">
           <button type="submit" disabled={pending} className={btnPrimarySm}>
             {pending ? 'Saving…' : 'Save changes'}
